@@ -157,12 +157,34 @@ export class Application implements IEffectSink {
             if (this.pointerDown === null || this.renderer === null) {
                 return;
             }
+            const tool = this.vm.getTool();
             const dx = event.clientX - this.pointerDown.x;
             const dy = event.clientY - this.pointerDown.y;
             if (Math.sqrt(dx * dx + dy * dy) > 6) {
                 this.pointerDown.moved = true;
             }
-            if (this.pointerDown.moved && this.pointerDown.button === 0 && event.buttons === 1) {
+            if (tool === "erase" && this.pointerDown.button === 0 && event.buttons === 1) {
+                const now = performance.now();
+                if (now - this.lastPaint > 83) {
+                    this.lastPaint = now;
+                    const hit = this.renderer.pickAtom(
+                        event.clientX,
+                        event.clientY,
+                        this.world.getInstanceList(),
+                        30,
+                    );
+                    if (hit !== null) {
+                        this.vm.removeAt(hit.instance.id);
+                    }
+                }
+                return;
+            }
+            if (
+                tool === "place" &&
+                this.pointerDown.moved &&
+                this.pointerDown.button === 0 &&
+                event.buttons === 1
+            ) {
                 const now = performance.now();
                 if (now - this.lastPaint > 83) {
                     this.lastPaint = now;
@@ -177,7 +199,8 @@ export class Application implements IEffectSink {
             if (info === null || info.moved || this.renderer === null) {
                 return;
             }
-            if (info.button === 2) {
+            const tool = this.vm.getTool();
+            if (info.button === 2 || tool === "erase") {
                 const hit = this.renderer.pickAtom(
                     event.clientX,
                     event.clientY,
@@ -192,19 +215,23 @@ export class Application implements IEffectSink {
             if (info.button !== 0) {
                 return;
             }
-            const hit = this.renderer.pickAtom(
-                event.clientX,
-                event.clientY,
-                this.world.getInstanceList(),
-                22,
-            );
-            if (hit !== null) {
-                const point = this.renderer.screenToWorld(event.clientX, event.clientY, 30);
-                this.vm.attemptBond(hit.instance.id, hit.atomIndex, point.x, point.y, point.z);
+            if (tool === "orbit") {
+                const hit = this.renderer.pickAtom(
+                    event.clientX,
+                    event.clientY,
+                    this.world.getInstanceList(),
+                    22,
+                );
+                if (hit !== null) {
+                    const point = this.renderer.screenToWorld(event.clientX, event.clientY, 30);
+                    this.vm.attemptBond(hit.instance.id, hit.atomIndex, point.x, point.y, point.z);
+                }
                 return;
             }
-            const point = this.renderer.screenToWorld(event.clientX, event.clientY, 30);
-            this.vm.spawnSelected(point.x, point.y, point.z);
+            if (tool === "place") {
+                const point = this.renderer.screenToWorld(event.clientX, event.clientY, 30);
+                this.vm.spawnSelected(point.x, point.y, point.z);
+            }
         });
     }
 
@@ -276,6 +303,7 @@ export class Application implements IEffectSink {
         if (this.renderer === null) {
             return;
         }
+        this.renderer.getController().setNavigationEnabled(this.vm.getTool() === "orbit");
         const pacer = this.renderer.getPacer();
         const steps = pacer.begin(nowMs);
         const frameDt = Math.min(0.05, pacer.getAverageFrameMs() / 1000 + 0.001);

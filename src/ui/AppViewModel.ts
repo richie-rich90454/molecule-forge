@@ -38,8 +38,6 @@ export class AppViewModel implements IReactionSink {
 
     public readonly getCategory: () => MoleculeCategory;
     public readonly setCategory: (value: MoleculeCategory) => void;
-    public readonly getTag: () => string;
-    public readonly setTag: (value: string) => void;
     public readonly getSelectedId: () => string;
     public readonly setSelectedId: (value: string) => void;
     public readonly getTemperature: () => number;
@@ -117,9 +115,6 @@ export class AppViewModel implements IReactionSink {
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
         this.getCategory = getCategory;
         this.setCategory = setCategory;
-        const [getTag, setTag] = createSignal<string>("");
-        this.getTag = getTag;
-        this.setTag = setTag;
         const [getSelectedId, setSelectedId] = createSignal<string>("caffeine");
         this.getSelectedId = getSelectedId;
         this.setSelectedId = setSelectedId;
@@ -211,13 +206,7 @@ export class AppViewModel implements IReactionSink {
         this.getLogOpen = getLogOpen;
         this.setLogOpen = setLogOpen;
         this.getFilteredRecords = createMemo(() => {
-            const category = getCategory();
-            const tag = getTag();
-            let records = registry.getRecords(category);
-            if (tag !== "") {
-                records = records.filter((record) => record.tags.includes(tag));
-            }
-            return records;
+            return registry.getRecords(getCategory());
         });
     }
 
@@ -277,11 +266,6 @@ export class AppViewModel implements IReactionSink {
 
     public selectCategory(category: MoleculeCategory): void {
         this.setCategory(category);
-        this.setTag("");
-    }
-
-    public selectTag(tag: string): void {
-        this.setTag(this.getTag() === tag ? "" : tag);
     }
 
     public selectMolecule(id: string): void {

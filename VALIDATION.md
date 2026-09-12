@@ -2,7 +2,7 @@
 
 ## Geometry pipeline
 
-Production geometry targets RDKit ETKDGv3 3D embedding from canonical SMILES, with stereochemistry (R/S, E/Z), formal charges, aromaticity perception, and dominant tautomers assigned before embedding. The in-app procedural embedder uses the same inputs (graph, bond orders, charges, stereo flags) with CSD-derived bond lengths and ideal hybridization geometries, followed by constrained relaxation. Every record carries provenance naming its source.
+Each record starts from a heavy-atom graph with bond orders, formal charges, stereochemistry flags, and aromaticity marks. Compact graphs come from hand-built records or from PubChem connectivity SMILES transcribed through `SmilesParser`. `MoleculeFactory` expands implicit hydrogens from valence rules, embeds 3D coordinates with CSD-derived bond lengths and ideal hybridization geometries, then relaxes the structure with bonded springs plus short-range repulsion. The pipeline targets RDKit ETKDGv3-quality output: correct valences, stereochemistry, charges, aromaticity, and dominant tautomers. Every record carries provenance naming its source.
 
 ## Automatic checks
 

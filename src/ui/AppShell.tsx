@@ -6,8 +6,8 @@ import { LogView } from "./LogView";
 import { PresetsView } from "./PresetsView";
 import { SlidersView } from "./SlidersView";
 import { TabsView } from "./TabsView";
-import { TagCloudView } from "./TagCloudView";
 import { TogglesView } from "./TogglesView";
+import { ToolSwitcher } from "./ToolSwitcher";
 
 export interface IAppShellCallbacks {
     onCanvasMount(element: HTMLElement): void;
@@ -44,7 +44,6 @@ export function AppShell(properties: {
             <div class="mf-main">
                 <aside class="mf-library">
                     <TabsView vm={vm} />
-                    <TagCloudView vm={vm} />
                     <LibraryView vm={vm} />
                 </aside>
                 <div class="mf-stage">
@@ -55,9 +54,10 @@ export function AppShell(properties: {
                         }}
                     >
                         <div class="mf-vignette" />
+                        <ToolSwitcher vm={vm} />
                         <div class="mf-hud">
-                            <b>{vm.getFps()}</b> fps &middot; <b>{vm.getCount()}</b> molecules
-                            &middot; q{vm.getQuality()}
+                            <b>{vm.getFps()}</b> fps &middot; <b>{vm.getCount()}</b> molecules (q
+                            {vm.getQuality()})
                         </div>
                     </div>
                     <div class="mf-controls">

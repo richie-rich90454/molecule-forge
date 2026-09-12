@@ -24,6 +24,8 @@ export interface ISelectedAtom {
     readonly atomIndex: number;
 }
 
+export type CanvasTool = "orbit" | "place" | "erase";
+
 const MAX_INSTANCES = 2500;
 
 export class AppViewModel implements IReactionSink {
@@ -94,6 +96,10 @@ export class AppViewModel implements IReactionSink {
     public readonly setPresetId: (value: string) => void;
     public readonly getSelectedAtom: () => ISelectedAtom | null;
     public readonly setSelectedAtom: (value: ISelectedAtom | null) => void;
+    public readonly getTool: () => CanvasTool;
+    public readonly setTool: (value: CanvasTool) => void;
+    public readonly getLogOpen: () => boolean;
+    public readonly setLogOpen: (value: boolean) => void;
     public readonly getFilteredRecords: () => ReadonlyArray<IMoleculeRecord>;
 
     public constructor(
@@ -198,6 +204,12 @@ export class AppViewModel implements IReactionSink {
         const [getSelectedAtom, setSelectedAtom] = createSignal<ISelectedAtom | null>(null);
         this.getSelectedAtom = getSelectedAtom;
         this.setSelectedAtom = setSelectedAtom;
+        const [getTool, setTool] = createSignal<CanvasTool>("orbit");
+        this.getTool = getTool;
+        this.setTool = setTool;
+        const [getLogOpen, setLogOpen] = createSignal<boolean>(false);
+        this.getLogOpen = getLogOpen;
+        this.setLogOpen = setLogOpen;
         this.getFilteredRecords = createMemo(() => {
             const category = getCategory();
             const tag = getTag();
@@ -274,14 +286,15 @@ export class AppViewModel implements IReactionSink {
 
     public selectMolecule(id: string): void {
         this.setSelectedId(id);
+        this.setTool("place");
         const record = this.registry.findById(id);
         if (record !== undefined) {
             this.addLog(
-                "Selected " +
+                "Placing " +
                     record.name +
                     " (" +
                     record.formula +
-                    "). Click the canvas to place it.",
+                    "). Click or drag the canvas. Orbit tool stops placement.",
                 false,
             );
         }
@@ -455,6 +468,10 @@ export class AppViewModel implements IReactionSink {
 
     public togglePause(): void {
         this.setPaused(!this.getPaused());
+    }
+
+    public toggleLog(): void {
+        this.setLogOpen(!this.getLogOpen());
     }
 
     public rerollSeed(): void {

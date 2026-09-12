@@ -3,11 +3,11 @@
     --bg-outer: #0c0c16;
     --panel: rgba(14, 16, 28, 0.92);
     --panel-solid: #0e101c;
-    --line: rgba(255, 178, 36, 0.16);
+    --line: rgba(172, 225, 175, 0.16);
     --text: #e8ecf4;
     --text-dim: #9aa3b5;
-    --accent: #ffb224;
-    --accent-dim: rgba(255, 178, 36, 0.35);
+    --accent: #ace1af;
+    --accent-dim: rgba(172, 225, 175, 0.35);
     --warn: #ff6060;
     --warn-dim: rgba(255, 96, 96, 0.35);
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
@@ -65,7 +65,7 @@ body {
 }
 
 .mf-btn {
-    background: rgba(255, 178, 36, 0.08);
+    background: rgba(172, 225, 175, 0.08);
     border: 1px solid var(--line);
     color: var(--text);
     border-radius: 8px;
@@ -90,7 +90,7 @@ body {
 }
 
 .mf-btn.mf-active {
-    background: rgba(255, 178, 36, 0.22);
+    background: rgba(172, 225, 175, 0.22);
     color: var(--accent);
     border-color: var(--accent);
 }
@@ -152,7 +152,7 @@ body {
 .mf-tab.mf-active {
     color: var(--accent);
     border-color: var(--accent-dim);
-    background: rgba(255, 178, 36, 0.1);
+    background: rgba(172, 225, 175, 0.1);
 }
 
 .mf-cards {
@@ -301,7 +301,7 @@ body {
 }
 
 .mf-tool.mf-active {
-    background: rgba(255, 178, 36, 0.18);
+    background: rgba(172, 225, 175, 0.18);
     color: var(--accent);
     border-color: var(--accent-dim);
 }

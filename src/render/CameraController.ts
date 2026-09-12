@@ -10,6 +10,7 @@ export class CameraController {
     private readonly maxRadius: number;
     private dragging: boolean;
     private panning: boolean;
+    private navigationEnabled: boolean;
     private lastX: number;
     private lastY: number;
     private element: HTMLElement | null;
@@ -29,6 +30,7 @@ export class CameraController {
         this.maxRadius = 220;
         this.dragging = false;
         this.panning = false;
+        this.navigationEnabled = true;
         this.lastX = 0;
         this.lastY = 0;
         this.element = null;
@@ -88,7 +90,18 @@ export class CameraController {
         return this.radius;
     }
 
+    public setNavigationEnabled(enabled: boolean): void {
+        this.navigationEnabled = enabled;
+        if (!enabled) {
+            this.dragging = false;
+            this.panning = false;
+        }
+    }
+
     private onPointerDown(event: PointerEvent): void {
+        if (!this.navigationEnabled && event.button !== 1) {
+            return;
+        }
         if (event.button === 1 || event.button === 2 || event.shiftKey) {
             this.panning = true;
         } else {

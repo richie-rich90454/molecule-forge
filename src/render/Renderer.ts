@@ -59,7 +59,7 @@ export class Renderer {
         const key = new THREE.DirectionalLight(new THREE.Color("#ffffff"), 1.6);
         key.position.set(-30, 40, 25);
         this.scene.add(key);
-        const rim = new THREE.DirectionalLight(new THREE.Color("#7ef2e0"), 0.5);
+        const rim = new THREE.DirectionalLight(new THREE.Color("#ace1af"), 0.35);
         rim.position.set(25, -20, -30);
         this.scene.add(rim);
         this.atoms = new AtomMeshRenderer(this.scene);

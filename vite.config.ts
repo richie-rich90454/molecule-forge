@@ -1,12 +1,12 @@
 /// <reference types="vitest" />
-/// <reference types="vite/client" />
 
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
-import devtools from "solid-devtools/vite";
+import { viteSingleFile } from "vite-plugin-singlefile";
 
 export default defineConfig({
-    plugins: [devtools(), solidPlugin()],
+    plugins: [solidPlugin(), viteSingleFile()],
+    base: "./",
     server: {
         port: 3000,
     },
@@ -14,12 +14,12 @@ export default defineConfig({
         environment: "jsdom",
         globals: false,
         setupFiles: ["node_modules/@testing-library/jest-dom/vitest"],
-        // if you have few tests, try commenting this
-        // out to improve performance:
         isolate: false,
     },
     build: {
         target: "esnext",
+        assetsInlineLimit: 100000000,
+        chunkSizeWarningLimit: 30000,
     },
     resolve: {
         conditions: ["development", "browser"],

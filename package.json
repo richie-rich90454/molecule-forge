@@ -20,6 +20,7 @@
         "@testing-library/jest-dom": "^7.0.0",
         "@types/node": "^22.20.2",
         "@types/three": "^0.186.0",
+        "baseline-browser-mapping": "^2.11.23",
         "jsdom": "^30.0.1",
         "oxfmt": "^0.67.0",
         "solid-devtools": "^0.34.5",

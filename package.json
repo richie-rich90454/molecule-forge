@@ -18,6 +18,8 @@
     "devDependencies": {
         "@solidjs/testing-library": "^0.8.10",
         "@testing-library/jest-dom": "^7.0.0",
+        "@types/node": "^22.20.2",
+        "@types/three": "^0.186.0",
         "jsdom": "^30.0.1",
         "oxfmt": "^0.67.0",
         "solid-devtools": "^0.34.5",

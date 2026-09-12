@@ -67,6 +67,15 @@ export class SnapshotCodec {
                 spawns: [],
             };
             for (const part of parts) {
+                if (/^[A-Za-z0-9_-]+x\d+$/.test(part)) {
+                    const at = part.lastIndexOf("x");
+                    const id = part.substring(0, at);
+                    const count = parseInt(part.substring(at + 1), 10) || 0;
+                    if (id.length > 0 && count > 0 && count < 500) {
+                        snapshot.spawns.push({ id, count });
+                    }
+                    continue;
+                }
                 if (part.startsWith("v") && snapshot.spawns.length === 0 && part.indexOf("x") < 0) {
                     const first = part;
                     if (/^v\d+$/.test(first)) {
@@ -88,13 +97,6 @@ export class SnapshotCodec {
                     snapshot.polarity = parseFloat(part.substring(1)) || 0.5;
                 } else if (part.startsWith("g")) {
                     snapshot.gravity = parseFloat(part.substring(1)) || 0;
-                } else if (part.includes("x")) {
-                    const at = part.lastIndexOf("x");
-                    const id = part.substring(0, at);
-                    const count = parseInt(part.substring(at + 1), 10) || 0;
-                    if (id.length > 0 && count > 0 && count < 500) {
-                        snapshot.spawns.push({ id, count });
-                    }
                 } else if (/^v[\d.]+$/.test(part)) {
                     snapshot.viscosity = parseFloat(part.substring(1)) || 0.2;
                 }

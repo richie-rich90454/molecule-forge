@@ -126,7 +126,7 @@ export class EffectRenderer {
         this.trailGeo.setAttribute("position", new THREE.BufferAttribute(this.trailPos, 3));
         const trailMat = new THREE.PointsMaterial({
             size: 0.28,
-            color: new THREE.Color("#7ef2e0"),
+            color: new THREE.Color("#ace1af"),
             transparent: true,
             opacity: 0.35,
             blending: THREE.AdditiveBlending,
@@ -138,8 +138,8 @@ export class EffectRenderer {
         this.grid = new THREE.GridHelper(
             80,
             16,
-            new THREE.Color("#1d3a44"),
-            new THREE.Color("#12242c"),
+            new THREE.Color("#3a3f35"),
+            new THREE.Color("#22251f"),
         );
         this.grid.visible = false;
         this.scene.add(this.grid);
@@ -249,7 +249,7 @@ export class EffectRenderer {
 
     public showArrow(x: number, y: number, z: number): void {
         const geometry = new THREE.ConeGeometry(0.5, 1.6, 8);
-        const material = new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffd479") });
+        const material = new THREE.MeshBasicMaterial({ color: new THREE.Color("#ace1af") });
         const cone = new THREE.Mesh(geometry, material);
         cone.position.set(x, y + 3, z);
         this.arrows.add(cone);

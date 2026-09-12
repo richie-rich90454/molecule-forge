@@ -3,14 +3,13 @@
     --bg-outer: #0c0c16;
     --panel: rgba(14, 16, 28, 0.92);
     --panel-solid: #0e101c;
-    --line: rgba(126, 242, 224, 0.14);
+    --line: rgba(255, 178, 36, 0.16);
     --text: #e8ecf4;
     --text-dim: #9aa3b5;
-    --accent: #7ef2e0;
-    --accent-dim: rgba(126, 242, 224, 0.35);
+    --accent: #ffb224;
+    --accent-dim: rgba(255, 178, 36, 0.35);
     --warn: #ff6060;
     --warn-dim: rgba(255, 96, 96, 0.35);
-    --gold: #ffd479;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -66,7 +65,7 @@ body {
 }
 
 .mf-btn {
-    background: rgba(126, 242, 224, 0.08);
+    background: rgba(255, 178, 36, 0.08);
     border: 1px solid var(--line);
     color: var(--text);
     border-radius: 8px;
@@ -91,7 +90,7 @@ body {
 }
 
 .mf-btn.mf-active {
-    background: rgba(126, 242, 224, 0.22);
+    background: rgba(255, 178, 36, 0.22);
     color: var(--accent);
     border-color: var(--accent);
 }
@@ -153,30 +152,7 @@ body {
 .mf-tab.mf-active {
     color: var(--accent);
     border-color: var(--accent-dim);
-    background: rgba(126, 242, 224, 0.1);
-}
-
-.mf-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 8px;
-    border-bottom: 1px solid var(--line);
-}
-
-.mf-tag {
-    background: rgba(255, 212, 121, 0.08);
-    border: 1px solid rgba(255, 212, 121, 0.25);
-    color: var(--gold);
-    border-radius: 20px;
-    font-size: 10px;
-    padding: 3px 10px;
-    cursor: pointer;
-    font-family: var(--sans);
-}
-
-.mf-tag.mf-active {
-    background: rgba(255, 212, 121, 0.25);
+    background: rgba(255, 178, 36, 0.1);
 }
 
 .mf-cards {
@@ -290,6 +266,46 @@ body {
     font-weight: 600;
 }
 
+.mf-tools {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    display: flex;
+    gap: 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 3px;
+    z-index: 3;
+}
+
+.mf-tool {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    border-radius: 7px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    font-family: var(--sans);
+}
+
+.mf-tool:hover {
+    color: var(--accent);
+}
+
+.mf-tool.mf-active {
+    background: rgba(255, 178, 36, 0.18);
+    color: var(--accent);
+    border-color: var(--accent-dim);
+}
+
 .mf-controls {
     border-top: 1px solid var(--line);
     background: var(--panel);
@@ -364,10 +380,19 @@ body {
     border-top: 1px solid var(--line);
     background: rgba(5, 5, 8, 0.94);
     padding: 6px 14px;
-    min-height: 118px;
-    max-height: 118px;
-    overflow: hidden;
     z-index: 4;
+}
+
+.mf-log-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--sans);
 }
 
 .mf-log-title {
@@ -375,6 +400,35 @@ body {
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--text-dim);
+    white-space: nowrap;
+}
+
+.mf-log-chevron {
+    font-size: 10px;
+    color: var(--accent);
+}
+
+.mf-log-ticker {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    color: var(--text);
+}
+
+.mf-log-ticker .mf-time {
+    font-family: var(--mono);
+    color: var(--accent);
+    margin-right: 8px;
+}
+
+.mf-log-list {
+    max-height: 150px;
+    overflow-y: auto;
+    padding-bottom: 4px;
 }
 
 .mf-log-line {
@@ -390,7 +444,7 @@ body {
 }
 
 .mf-log-line.mf-flash {
-    color: var(--gold);
+    color: var(--accent);
 }
 
 @keyframes mf-fade {
@@ -432,8 +486,7 @@ body {
         min-width: 64px;
     }
 
-    .mf-library .mf-cards,
-    .mf-library .mf-tags {
+    .mf-library .mf-cards {
         display: none;
     }
 
@@ -449,5 +502,10 @@ body {
     .mf-app .mf-controls {
         max-height: 40vh;
         overflow-y: auto;
+    }
+
+    .mf-tools {
+        top: auto;
+        bottom: 10px;
     }
 }

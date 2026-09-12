@@ -248,7 +248,7 @@ export class Renderer {
                 const jz = Math.sin(this.time * 8.1 + phase * 0.7) * jitterAmp;
                 let radius = 0.55;
                 try {
-                    radius = ElementRegistry.get(atom.el).covalentRadius + 0.25;
+                    radius = (ElementRegistry.get(atom.el).covalentRadius + 0.25) * 0.62;
                 } catch (error) {
                     void error;
                 }

@@ -133,7 +133,7 @@ export class BondMeshRenderer {
             const my = (bond.ay + bond.by) / 2 + this.side.y * offset;
             const mz = (bond.az + bond.bz) / 2 + this.side.z * offset;
             this.position.set(mx, my, mz);
-            this.scale.set(0.09, length, 0.09);
+            this.scale.set(0.11, length, 0.11);
             this.matrix.compose(this.position, this.quaternion, this.scale);
             mesh.setMatrixAt(slot, this.matrix);
             slot++;

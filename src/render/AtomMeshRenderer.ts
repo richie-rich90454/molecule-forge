@@ -154,7 +154,7 @@ export class AtomMeshRenderer {
             }
             const geometry = new THREE.SphereGeometry(1, 10, 8);
             const material = new THREE.MeshBasicMaterial({
-                color: new THREE.Color("#7ef2e0"),
+                color: new THREE.Color("#ace1af"),
                 transparent: true,
                 opacity: 0.1,
                 blending: THREE.AdditiveBlending,

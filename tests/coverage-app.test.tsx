@@ -420,6 +420,26 @@ describe("AppShell coverage", () => {
         expect(controls).toBeGreaterThan(0);
         unmount();
     });
+
+    it("switches between the library and the analysis panel", () => {
+        const { vm } = makeVm();
+        const callbacks = {
+            onCanvasMount: () => {},
+            onResetCamera: () => {},
+            onControlsChange: () => {},
+        };
+        const { unmount, container } = render(() => AppShell({ vm, callbacks }));
+        fireEvent.click(screen.getByRole("button", { name: "Analyze" }));
+        expect(vm.getPanel()).toBe("analyze");
+        expect(screen.getByText("Chamber")).toBeInTheDocument();
+        const select = container.querySelector(".mf-measure-select") as HTMLSelectElement;
+        const targetRule = vm.getMeasureData().rules[1].id;
+        fireEvent.change(select, { target: { value: targetRule } });
+        expect(vm.getSelectedRuleId()).toBe(targetRule);
+        fireEvent.click(screen.getByRole("button", { name: "Molecules" }));
+        expect(vm.getPanel()).toBe("library");
+        unmount();
+    });
 });
 
 describe("SoundEngine coverage", () => {

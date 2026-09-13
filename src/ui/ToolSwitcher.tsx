@@ -1,5 +1,6 @@
 import type { JSX } from "solid-js";
 import type { AppViewModel, CanvasTool } from "./AppViewModel";
+import { IconErase, IconOrbit, IconPlace } from "./Icons";
 
 const TOOLS: Array<{ id: CanvasTool; label: (molecule: string) => string; title: string }> = [
     {
@@ -19,6 +20,12 @@ const TOOLS: Array<{ id: CanvasTool; label: (molecule: string) => string; title:
     },
 ];
 
+const ICONS: Record<CanvasTool, JSX.Element> = {
+    orbit: IconOrbit,
+    place: IconPlace,
+    erase: IconErase,
+};
+
 export function ToolSwitcher(properties: { vm: AppViewModel }): JSX.Element {
     const vm = properties.vm;
     const selectedName = (): string => {
@@ -33,7 +40,8 @@ export function ToolSwitcher(properties: { vm: AppViewModel }): JSX.Element {
                     title={tool.title}
                     onClick={() => vm.setTool(tool.id)}
                 >
-                    {tool.label(selectedName())}
+                    <span class="mf-tool-icon">{ICONS[tool.id]}</span>
+                    <span class="mf-tool-label">{tool.label(selectedName())}</span>
                 </button>
             ))}
         </div>

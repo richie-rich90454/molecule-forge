@@ -28,6 +28,14 @@ Synthesis is stoichiometric, not magnetic. Place enough of each element within a
 
 Ionic solids are drawn as discrete bonded clusters, one instance per formula unit, spaced apart rather than arranged as an infinite lattice. That is a deliberate molecular-sandbox approximation, not a rendering bug.
 
+## A metal does not displace another metal
+
+Displacement uses standard reduction potentials. Zinc displaces copper, but copper cannot displace zinc, and unreactive metals such as gold are not in the table at all. The two metals must be in contact, the salt must be a simple metal-plus-anion pair, and the cell potential must come out positive. The log reports the cell potential when a swap fires.
+
+## A reaction will not start until it is warm
+
+Covalent synthesis needs about 250 K, and strongly endothermic products are held back below 800 K unless you Spark. The SolventModel also raises the bar slightly in a chamber full of ionic compounds, because the ionic atmosphere lowers activity. Heat the chamber or press Spark.
+
 ## A synthesized compound cannot be restored from a snapshot
 
 Runtime compounds exist only in the session; snapshots store molecule ids and counts, and the catalogue does not contain generated compounds. A restored elemental scene re-forms its compounds from the same seed. Catalogue molecules always restore exactly.

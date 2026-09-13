@@ -14,7 +14,7 @@ Preset spawn lists respect the same budget, so on a nearly full chamber a preset
 
 ## Detonate does nothing visible
 
-Detonation needs something burnable: explosive-tagged molecules for shockwaves, or a fuel plus an oxidizer (octane plus oxygen, ethene plus oxygen) for combustion. Detonate arms the spark flag and heats to at least 950 K; combustion rules still need their temperature thresholds and a few seconds of simulation. If the chamber is cold and fuel-free, the log tells you exactly what to add.
+Detonation needs something burnable: explosive-tagged molecules for shockwaves, or a fuel plus oxygen for combustion. Any C/H/N/S fuel burns, and the general combustion solver derives the balanced equation from the fuel's own atoms, so you need enough oxygen molecules nearby (methane wants two, octane wants twenty-five per two molecules). Detonate arms the spark flag and heats to at least 950 K; combustion still needs that ignition and a few seconds of simulation. If the chamber is cold or short on oxygen, the log stays quiet until the mix is right.
 
 ## Spark does nothing visible
 

@@ -350,7 +350,7 @@ export class Application implements IEffectSink {
                         this.decomposition.update(this.world, this.simRng, this.vm);
                     }
                     budgeted--;
-                    if (this.world.countAlive() === 0) {
+                    if (this.world.isEmpty()) {
                         break;
                     }
                 }

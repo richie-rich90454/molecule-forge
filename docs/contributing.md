@@ -8,7 +8,7 @@ Use `bun` for everything. Never `npm` or `npx`; use `bunx` for one-off tools.
 bun install
 bun run dev          # develop with hot reload
 bun run build        # produce dist/index.html
-bun run test         # run the Vitest suite (264 tests, 100 percent coverage)
+bun run test         # run the Vitest suite (274 tests, 100 percent coverage)
 bun run validate     # validate all 507 molecules
 bun run bake > docs/molecules.md  # regenerate the molecule listing
 bun run docs:dev     # preview this site
@@ -37,7 +37,7 @@ Append a row to `ElementRegistry` with atomic number, standard mass, covalent an
 
 ## Extend synthesis
 
-Synthesis needs no rule entry for new monatomic salts; the oxidation-state table already covers them. To add a polyatomic ion, append a row to `src/chem/PolyatomicIons.ts`; the generator there already derives the oxyanions of several central atoms from their oxidation state and oxygen count. To widen the covalent set, add a mapping in `CompoundSynthesizer` (`COVALENT_CATALOG` for an existing molecule, `COVALENT_SYNTH` for a generated record) and, for an accurate enthalpy, a formation enthalpy in `Thermochemistry`. To add an elemental allotrope, extend `ALLOTROPES`. To change which charge a metal prefers, reorder its `cations` list. Redox coverage comes from the reduction-potential table in `Thermochemistry`; add a couple there and cover it in `tests/redox.test.ts`. Solvent behaviour lives in `SolventModel`. Cover every branch in `tests/synthesis.test.ts`, `tests/thermo.test.ts`, and `tests/redox.test.ts`, including the stoichiometry hint path, the kinetic gate, atom conservation, multi-unit layout, and the activity correction.
+Synthesis needs no rule entry for new monatomic salts; the oxidation-state table already covers them. To add a polyatomic ion, append a row to `src/chem/PolyatomicIons.ts`; the generator there already derives the oxyanions of several central atoms from their oxidation state and oxygen count. To widen the covalent set, add a mapping in `CompoundSynthesizer` (`COVALENT_CATALOG` for an existing molecule, `COVALENT_SYNTH` for a generated record) and, for an accurate enthalpy, a formation enthalpy in `Thermochemistry`. To add an elemental allotrope, extend `ALLOTROPES`. To change which charge a metal prefers, reorder its `cations` list. Redox coverage comes from the reduction-potential table in `Thermochemistry`; add a couple there and cover it in `tests/redox.test.ts`. Oxidation reactivity is derived from electronegativity and bond energies, so adding a bond energy to `Thermochemistry` is usually all a new diatomic oxidizer needs. Solvent behaviour lives in `SolventModel` and the shared kinetics in `ReactionGate`. Cover every branch in `tests/synthesis.test.ts`, `tests/thermo.test.ts`, `tests/redox.test.ts`, and `tests/oxidation.test.ts`, including the stoichiometry hint path, the kinetic gates, atom conservation, multi-unit layout, and the activity correction.
 
 ## Add a preset
 

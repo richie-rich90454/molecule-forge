@@ -52,33 +52,45 @@ Crystallization and protein folding keep their reactants and only stage visuals 
 
 `SynthesisEngine` reacts free atoms on contact, which is why placing a metal next to a halogen actually forms a compound instead of doing nothing.
 
-- It treats any molecule of one or two atoms of a single element as an available atom source (the `el-*` monatomic atoms, and diatomics such as Br2, O2, H2).
+- It treats any molecule of one or two atoms of a single element as an available atom source (the `el-*` monatomic atoms, and diatomics such as Br2, O2, H2), along with allotropes such as S8.
 - It groups sources within 7 angstroms into clusters, tallies the atoms, and asks `CompoundSynthesizer` what can form.
-- If a compound is feasible it consumes the required number of atoms from the cluster, returns any overshoot as free atoms, and spawns the product instances. Atoms are conserved exactly.
-- If a pair is reactive but the local cluster has the wrong ratio, it logs one deduplicated stoichiometry hint instead of staying silent.
+- If a compound is feasible it consumes the required number of atoms from the cluster, returns any overshoot as free atoms, and spawns the product instances spaced apart like a small lattice. Atoms are conserved exactly.
+- It only reacts above 5 K; molecular covalent synthesis additionally needs about 250 K or a spark, so cold chambers stay still and ionic melts do not.
+- If a pair is reactive but the local cluster has the wrong ratio, it logs one deduplicated stoichiometry hint that names the limiting element instead of staying silent.
 
-Prediction order is ionic first, then a covalent catalogue molecule, then a diatomic, then a hint. That ordering is deliberate: with cerium and bromine present, `CeBr3` wins over `Br2`; with only two bromine atoms and no metal, `Br2` forms.
+Prediction order is ionic first, then a covalent catalogue molecule, then a diatomic or allotrope, then a hint. That ordering is deliberate: with cerium and bromine present, `CeBr3` wins over `Br2`; with only two bromine atoms and no metal, `Br2` forms.
 
 Examples:
 
-| Input atoms  | Product                    | Notes                             |
-| ------------ | -------------------------- | --------------------------------- |
-| 1 Ce + 3 Br  | CeBr3, cerium(III) bromide | charge-balanced 1:3               |
-| 1 Ce + 4 Br  | CeBr4, cerium(IV) bromide  | cation charge chosen to fit       |
-| 2 Fe + 3 O   | Fe2O3, iron(III) oxide     | multi-cation formula              |
-| 1 Fe + 2 Br  | FeBr2, iron(II) bromide    | lower charge fits                 |
-| 1 Ca + 3 Cl  | CaCl2 + 1 free Cl          | surplus returned as an atom       |
-| 1 Al + 2 Cl2 | AlCl3 + 1 free Cl          | diatomic overshoot returned       |
-| 2 H + 1 O    | water                      | covalent catalogue molecule       |
-| 4 H + 2 O    | 2 H2O                      | stoichiometry scaled to the atoms |
-| 1 C + 4 H    | CH4, methane               | covalent catalogue molecule       |
-| 1 H + 1 F    | HF, hydrogen fluoride      | generated covalent record         |
-| 1 Xe + 4 F   | XeF4, xenon tetrafluoride  | noble gas fluoride                |
-| 2 H + 2 F    | 2 HF                       | diatomic reagents combine         |
-| 2 O          | O2                         | diatomic recombination            |
-| 1 Ce + 2 Br  | hint only                  | "needs 1 Ce and 3 Br per unit"    |
+| Input atoms           | Product                      | Notes                              |
+| --------------------- | ---------------------------- | ---------------------------------- |
+| 1 Ce + 3 Br           | CeBr3, cerium(III) bromide   | charge-balanced 1:3                |
+| 1 Ce + 4 Br           | CeBr4, cerium(IV) bromide    | cation charge chosen to fit        |
+| 2 Fe + 3 O            | Fe2O3, iron(III) oxide       | multi-cation formula               |
+| 1 Fe + 2 Br           | FeBr2, iron(II) bromide      | lower charge fits                  |
+| 1 Ca + 3 Cl           | CaCl2 + 1 free Cl            | surplus returned as an atom        |
+| 1 Al + 2 Cl2          | AlCl3 + 1 free Cl            | diatomic overshoot returned        |
+| 1 Na + 1 O + 1 H      | NaOH, sodium hydroxide       | polyatomic hydroxide               |
+| 1 Ca + 2 O + 2 H      | Ca(OH)2, calcium hydroxide   | repeated complex ion parenthesized |
+| 2 Na + 1 S + 4 O      | Na2SO4, sodium sulfate       | polyatomic sulfate                 |
+| 1 K + 1 N + 3 O       | KNO3, potassium nitrate      | polyatomic nitrate                 |
+| 1 Ca + 1 C + 3 O      | CaCO3, calcium carbonate     | polyatomic carbonate               |
+| 2 Fe + 3 S + 12 O     | Fe2(SO4)3, iron(III) sulfate | trivalent metal, divalent anion    |
+| 1 N + 4 H + 1 Cl      | NH4Cl, ammonium chloride     | polyatomic cation                  |
+| 2 N + 8 H + 1 S + 4 O | (NH4)2SO4, ammonium sulfate  | two complex ions                   |
+| 2 H + 1 O             | water                        | covalent catalogue molecule        |
+| 4 H + 2 O             | 2 H2O                        | stoichiometry scaled to the atoms  |
+| 1 C + 4 H             | CH4, methane                 | covalent catalogue molecule        |
+| 1 H + 1 F             | HF, hydrogen fluoride        | generated covalent record          |
+| 1 Xe + 4 F            | XeF4, xenon tetrafluoride    | noble gas fluoride                 |
+| 2 H + 2 F             | 2 HF                         | diatomic reagents combine          |
+| 4 P                   | P4, tetraphosphorus          | elemental allotrope                |
+| 8 S                   | S8, cyclooctasulfur          | elemental allotrope                |
+| 2 O                   | O2                           | diatomic recombination             |
+| 1 Ce + 2 Br           | hint only                    | "needs 1 Ce and 3 Br per unit"     |
+| 2 H + 1 F (cold)      | hint only                    | "needs more heat to form"          |
 
-The synthesizer is a valence and electronegativity model, not a full quantum solver: it does not model redox potentials, polyatomic ions, solvent effects, or reaction barriers for the ionic step, and it approximates ionic lattices as discrete bonded clusters. Elemental allotropes other than the halogens, nitrogen, oxygen, and hydrogen diatomics (for example S8 and P4) are not formed.
+The synthesizer is a valence and electronegativity model with common oxidation states and a curated polyatomic ion table, not a full quantum solver. It does not compute redox potentials or reaction enthalpies, so competition between several valid products is resolved by a documented preference order (oxygen-bearing and multiply-charged anions first, then atom economy, then charge product) rather than by free energy. It does not model solvent structure or polyatomic ions beyond the table, and it draws ionic solids as discrete bonded clusters rather than infinite lattices.
 
 ## Adding a rule
 

@@ -1,3 +1,4 @@
+import "./fonts.css";
 import "./styles.css";
 import { Application } from "./Application";
 

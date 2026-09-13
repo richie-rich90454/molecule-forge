@@ -19,7 +19,7 @@ export function LogView(properties: { vm: AppViewModel }): JSX.Element {
                 title="Collapse or expand the reaction log"
             >
                 <span class="mf-log-title">Reaction Log</span>
-                <span class="mf-log-chevron">{vm.getLogOpen() ? "hide" : "show"}</span>
+                <span class="mf-log-chevron">{vm.getLogOpen() ? "Hide" : "Show"}</span>
                 {vm.getLogOpen() || latest() === null ? null : (
                     <span class="mf-log-ticker">
                         <span class="mf-time">{latest()?.time}</span>

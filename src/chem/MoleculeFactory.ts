@@ -43,7 +43,11 @@ export class MoleculeFactory {
         const mass = MoleculeFactory.computeMass(allAtoms);
         const properties = MoleculeFactory.estimateProperties(spec, bonds, hCounts);
         const atomSpecs = MoleculeFactory.toAtomSpecs(spec, bonds, allAtoms, charges);
-        const bondSpecs = MoleculeFactory.toBondSpecs(withH.bonds);
+        const ionic = new Set<string>();
+        for (const pair of spec.ionicBonds ?? []) {
+            ionic.add(MoleculeFactory.pairKey(pair[0], pair[1]));
+        }
+        const bondSpecs = MoleculeFactory.toBondSpecs(withH.bonds, ionic);
         return {
             id: spec.id,
             name: spec.name,
@@ -608,6 +612,7 @@ export class MoleculeFactory {
 
     private static toBondSpecs(
         bonds: ReadonlyArray<{ a: number; b: number; order: number; stereo: string | null }>,
+        ionic: ReadonlySet<string>,
     ): IBondSpec[] {
         return bonds.map((b) => ({
             a: b.a,
@@ -615,6 +620,11 @@ export class MoleculeFactory {
             order: (b.order > 4 ? 1 : b.order) as BondOrder,
             aromatic: b.order === 4,
             stereo: b.stereo,
+            ionic: ionic.has(MoleculeFactory.pairKey(b.a, b.b)),
         }));
+    }
+
+    private static pairKey(a: number, b: number): string {
+        return Math.min(a, b) + ":" + Math.max(a, b);
     }
 }

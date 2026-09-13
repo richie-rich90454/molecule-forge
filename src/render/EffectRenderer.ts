@@ -221,14 +221,14 @@ export class EffectRenderer {
             s = (s * 16807) % 2147483647;
             const u = s / 2147483647;
             const theta = t * Math.PI * 2;
-            const z = u * 2 - 1;
-            const ring = Math.sqrt(Math.max(0, 1 - z * z));
+            const nz = u * 2 - 1;
+            const ring = Math.sqrt(Math.max(0, 1 - nz * nz));
             particle.active = true;
             particle.x = x;
             particle.y = y;
             particle.z = z;
             particle.vx = Math.cos(theta) * ring * speed;
-            particle.vy = Math.abs(z) * speed * 0.8;
+            particle.vy = Math.abs(nz) * speed * 0.8;
             particle.vz = Math.sin(theta) * ring * speed;
             particle.life = 0.5 + (spawned % 5) * 0.1;
             particle.maxLife = particle.life;

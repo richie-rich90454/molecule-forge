@@ -1,8 +1,9 @@
-import type { JSX } from "solid-js";
+import { Show, type JSX } from "solid-js";
 import { ActionsView } from "./ActionsView";
 import type { AppViewModel } from "./AppViewModel";
 import { LibraryView } from "./LibraryView";
 import { LogView } from "./LogView";
+import { MeasureView } from "./MeasureView";
 import { PresetsView } from "./PresetsView";
 import { SlidersView } from "./SlidersView";
 import { TabsView } from "./TabsView";
@@ -52,8 +53,40 @@ export function AppShell(properties: {
             </header>
             <div class="mf-main">
                 <aside class="mf-library">
-                    <TabsView vm={vm} />
-                    <LibraryView vm={vm} />
+                    <div class="mf-panel-switch">
+                        <button
+                            class={
+                                vm.getPanel() === "library"
+                                    ? "mf-panel-btn mf-active"
+                                    : "mf-panel-btn"
+                            }
+                            onClick={() => vm.selectPanel("library")}
+                        >
+                            Molecules
+                        </button>
+                        <button
+                            class={
+                                vm.getPanel() === "analyze"
+                                    ? "mf-panel-btn mf-active"
+                                    : "mf-panel-btn"
+                            }
+                            onClick={() => vm.selectPanel("analyze")}
+                        >
+                            Analyze
+                        </button>
+                    </div>
+                    <Show
+                        when={vm.getPanel() === "library"}
+                        fallback={
+                            <MeasureView
+                                data={vm.getMeasureData()}
+                                onSelectRule={(ruleId) => vm.setSelectedRuleId(ruleId)}
+                            />
+                        }
+                    >
+                        <TabsView vm={vm} />
+                        <LibraryView vm={vm} />
+                    </Show>
                 </aside>
                 <div class="mf-stage">
                     <div

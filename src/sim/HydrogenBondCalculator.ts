@@ -1,4 +1,4 @@
-import type { IForceCalculator, IPairInput } from "./IForceCalculator";
+import type { IForceCalculator, IPairBody, IPairInput } from "./IForceCalculator";
 
 export class HydrogenBondCalculator implements IForceCalculator {
     private readonly strength: number;
@@ -11,6 +11,12 @@ export class HydrogenBondCalculator implements IForceCalculator {
 
     public getName(): string {
         return "HydrogenBond";
+    }
+
+    public getRange(a: IPairBody, b: IPairBody): number {
+        const donors = a.donors + b.donors;
+        const acceptors = a.acceptors + b.acceptors;
+        return donors === 0 || acceptors === 0 ? 0 : this.maxDistance;
     }
 
     public computeMagnitude(input: IPairInput): number {

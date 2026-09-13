@@ -67,6 +67,15 @@ The left panel switches between **Molecules** and **Analyze**. Analyze is a read
 
 Nothing here writes state; it only observes, so it stays a pure static page.
 
+## Explain panel
+
+The **Explain** panel turns an observation into the chemistry behind it:
+
+- **Last reaction**: clicking any reaction line in the log fills this card. It shows the rule's name, the balanced equation built from real formulas, the net ΔH (labeled released or absorbed), the activation energy, the conditions that gated it, the rate law, and a reference. Emergent reactions that have no catalogue rule still show their message and any recorded enthalpy.
+- **Selected molecule**: whatever card is selected in the library appears here with its molar mass, atom count and element tallies, net charge, hydrogen-bond donors and acceptors, rotatable bonds, TPSA, logP, aromatic ring count, detected functional groups (hydroxyl, carbonyl, carboxyl, amine, nitrile), hazard badge, and a plain-language summary of its size, polarity, and bonding behavior.
+
+Nothing here invents data: every field is read from the molecule record or the reaction rule.
+
 ## Atom budget
 
 The chamber holds at most 2500 molecules and 200000 atoms. Giant structures like DNA duplexes and insulin consume budget fast. When the budget fills, spawning refuses with a log line instead of crashing the tab. Clear or erase to make room. Synthesis respects the same budget: it will not consume reactants if the products would overflow the chamber.

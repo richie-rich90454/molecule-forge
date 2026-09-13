@@ -240,11 +240,11 @@ export class SynthesisEngine {
             );
         }
         sink.publish({
-            ruleId: "synthesis-" + product.formula,
+            ruleId: "synthesis-" + productSource.record.formula,
             message:
-                product.name +
+                productSource.record.name +
                 " forms as " +
-                product.formula +
+                productSource.record.formula +
                 (product.enthalpy === null
                     ? "."
                     : " (delta-H " + Math.round(product.enthalpy) + " kJ/mol)."),

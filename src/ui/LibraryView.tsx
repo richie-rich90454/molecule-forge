@@ -22,9 +22,18 @@ function MoleculeCard(properties: { vm: AppViewModel; record: IMoleculeRecord })
         }
     });
     const disabled = record.warn && !vm.getWarnings();
+    const selected = vm.getSelectedId() === record.id;
     return (
         <button
-            class={record.warn ? "mf-card mf-warn" : "mf-card"}
+            class={
+                record.warn
+                    ? selected
+                        ? "mf-card mf-warn mf-selected"
+                        : "mf-card mf-warn"
+                    : selected
+                      ? "mf-card mf-selected"
+                      : "mf-card"
+            }
             disabled={disabled}
             onClick={() => vm.selectMolecule(record.id)}
             title={record.name + " " + record.formula}

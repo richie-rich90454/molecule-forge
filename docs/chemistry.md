@@ -34,13 +34,31 @@ There are three honest ways to add catalogue molecules, in order of preference:
 `CompoundSynthesizer` predicts and builds compounds that are not in the catalogue, which is what makes loose atoms react instead of sitting inert:
 
 - **Ionic salts, monatomic and polyatomic.** A metal carries a stable cation charge; a nonmetal, metalloid, or polyatomic ion carries an anion charge. The two are balanced to the smallest whole-number formula unit (`Ce` + `3 Br` into `CeBr3`, `2 Fe` + `3 O` into `Fe2O3`, `Na` + `O` + `H` into `NaOH`). The cation charge is chosen to consume the available atoms with the least waste, so iron takes `+3` when three bromides are present and `+2` when only two are.
-- **Polyatomic ions.** `PolyatomicIons` supplies hydroxide, cyanide, peroxide, nitrate, nitrite, carbonate, bicarbonate, sulfate, sulfite, phosphate, hydrogen phosphate, permanganate, chromate, hypochlorite, chlorate, perchlorate, acetate, and oxalate as anions, plus ammonium as a cation. The synthesizer assembles them with their counter-ions into real salts and groups repeated complex ions in the formula: `Ca(OH)2`, `Na2SO4`, `KNO3`, `CaCO3`, `Fe2(SO4)3`, `(NH4)2SO4`. Each ion's formal charges sum to its declared charge, which the test suite asserts directly.
+- **Polyatomic ions.** `PolyatomicIons` supplies hydroxide, cyanide, peroxide, nitrate, nitrite, carbonate, bicarbonate, sulfate, sulfite, phosphate, hydrogen phosphate, permanganate, chromate, hypochlorite, chlorate, perchlorate, acetate, and oxalate as anions, plus ammonium as a cation. A generator extends the set beyond that table to the oxyanions of bromine, iodine, arsenic, selenium, tellurium, silicon, germanium, boron, and antimony (bromate, iodate, arsenate, selenate, tellurate, silicate, germanate, borate, antimonate, and their lower oxidation states), deriving each ion's composition, formal charge, and connectivity from its central oxidation state and oxygen count. The synthesizer assembles them with their counter-ions into real salts and groups repeated complex ions in the formula: `Ca(OH)2`, `Na2SO4`, `KNO3`, `CaCO3`, `Fe2(SO4)3`, `(NH4)2SO4`, `NaBrO3`. Each ion's formal charges sum to its declared charge, which the test suite asserts directly.
 - **Covalent molecules.** An element multiset is matched against known formulas and scaled to any whole multiple, so `4 H + 2 O` makes two waters and `2 C + 4 O` makes two carbon dioxides. Water, carbon dioxide, carbon monoxide, ammonia, methane, nitrous oxide, hydrogen peroxide, hydrogen sulfide, hydrogen chloride, hydrogen bromide, and sulfur dioxide come from the catalogue; hydrogen fluoride is generated. Xenon, krypton, and radon form fluorides (`Xe` + `4 F` into XeF4); helium, neon, and argon stay inert.
 - **Elemental allotropes.** Two monatomic atoms of a diatomic former combine (`2 O` into O2, `2 I` into I2), eight sulfurs close into the S8 ring, and four phosphorus atoms form the P4 tetrahedron.
 - **Kinetics.** Ionic pairing and radical recombination happen on contact. Molecular covalent synthesis needs roughly 250 K of thermal energy (or a spark), and nothing reacts below 5 K, so a cryogenic chamber stays still while an ionic melt does not.
 - **Stoichiometry hints.** When a reactive pair is in contact but there are not enough atoms to balance a formula unit, the synthesis engine emits a plain-language hint that names the limiting element, for example "Cerium(III) bromide needs 1 Ce and 3 Br per unit. Add more Br." Hints are deduplicated so the log does not spam.
 
 Synthesized compounds carry the `functional` category and the tags `compound`, `synthesized`. They are runtime-only: they exist in the chamber and in reactions, not in the catalogue listing. The model is a valence and electronegativity approximation, not a quantum-chemistry solver; it does not compute redox potentials or enthalpies, and it draws ionic solids as discrete bonded clusters with their formula units spaced apart.
+
+## Thermochemistry
+
+`Thermochemistry` holds standard data and computes reaction enthalpies rather than asserting them:
+
+- **Covalent and elemental** enthalpies come from standard enthalpies of formation of the gaseous products (water -241.8, carbon dioxide -393.5, methane -74.8, HF -271.1 kJ/mol, and so on) and from bond dissociation energies for generated structures, summed against the atomization enthalpy of the free atoms that are consumed. So `2 H + O` is computed as -927 kJ/mol, `2 O into O2` as -498, and `2 H + 2 F into 2 HF` as -1136.
+- **Binary ionic** enthalpies use a Born-Haber cycle: the atomization enthalpy plus successive ionization energies of the cation, minus the electron affinity of the anion, minus the Kapustinskii lattice energy built from the ions' Shannon radii and charge product.
+- The engine gates strongly endothermic products behind heat or a spark and reports the computed delta-H in every reaction log line.
+
+Where a standard datum genuinely does not exist the computation returns null and the reaction falls back to the ordering heuristic instead of inventing a number.
+
+## Redox potentials
+
+`Thermochemistry` also carries a table of standard reduction potentials. `RedoxEngine` uses them directly: when a free metal atom sits within contact range of a salt whose cation is less reducing, it computes the cell potential `E(cathode) - E(anode)` and, when positive, swaps them. Zinc displaces copper from copper chloride (`E-cell` 1.10 V) while copper cannot displace zinc. The engine never fires when the cell potential is zero or negative.
+
+## Solvent model
+
+`SolventModel` treats the chamber as a continuum electrolyte. It computes ionic strength from the formal charges present and the chamber volume, and derives Debye-Huckel activity coefficients from it. The activity corrects the thermal gate for endothermic synthesis, so a concentrated ionic melt raises the energy needed for an unfavorable product. This is an ionic-atmosphere (continuum) solvent model, not explicit solvated molecules.
 
 ## Geometry
 

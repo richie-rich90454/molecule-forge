@@ -23,7 +23,7 @@ features:
     - title: One file, anywhere
       details: The production build is a single dist/index.html. Double-click it, or host it on any static server. No fetch of local assets, no SharedArrayBuffer, no backend.
     - title: Deterministic scenarios
-      details: Thirty-six seeded presets reproduce exactly. URL hashes encode the full universe, so the Share button copies a working link to any state.
+      details: Thirty-seven seeded presets reproduce exactly. URL hashes encode the full universe, so the Share button copies a working link to any state.
     - title: Fast on real displays
       details: DPR-aware canvas up to 4.0, uncapped rendering with interpolated 240 Hz physics, instanced draw calls, and adaptive quality that sheds load instead of frames.
 ---

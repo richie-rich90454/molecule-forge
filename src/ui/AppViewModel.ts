@@ -311,7 +311,7 @@ export class AppViewModel implements IReactionSink {
             );
             return false;
         }
-        if (this.world.countAlive() >= MAX_INSTANCES) {
+        if (this.world.getInstanceCount() >= MAX_INSTANCES) {
             this.addLog("The chamber is full. Clear or remove molecules first.", true);
             return false;
         }
@@ -539,7 +539,7 @@ export class AppViewModel implements IReactionSink {
                     break;
                 }
                 this.world.spawn(record, x, y, z, speed);
-                if (this.world.countAlive() >= MAX_INSTANCES) {
+                if (this.world.getInstanceCount() >= MAX_INSTANCES) {
                     break;
                 }
             }

@@ -4,6 +4,7 @@ import { ElementChemistry } from "../src/chem/ElementChemistry";
 import { ElementRegistry } from "../src/chem/ElementRegistry";
 import { MoleculeFactory } from "../src/chem/MoleculeFactory";
 import { MoleculeRegistry } from "../src/chem/MoleculeRegistry";
+import { PolyatomicIons } from "../src/chem/PolyatomicIons";
 import { PhysicsEngine } from "../src/sim/PhysicsEngine";
 import { SimParamsFactory } from "../src/sim/IForceCalculator";
 import { MoleculeInstance } from "../src/sim/MoleculeInstance";
@@ -106,6 +107,50 @@ describe("ElementChemistry", () => {
     });
 });
 
+describe("PolyatomicIons", () => {
+    it("declares ions whose charge and composition match their atoms", () => {
+        const ions = [...PolyatomicIons.anions(), ...PolyatomicIons.cations()];
+        expect(ions.length).toBeGreaterThan(15);
+        for (const ion of ions) {
+            expect(ion.charge).not.toBe(0);
+            expect(ion.composition.size).toBeGreaterThan(0);
+            expect(PolyatomicIons.netCharge(ion)).toBe(ion.charge);
+            const counts = new Map<string, number>();
+            for (const symbol of ion.heavy) {
+                counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+            }
+            let hydrogens = 0;
+            for (const [, count] of ion.explicitH) {
+                hydrogens += count;
+            }
+            if (hydrogens > 0) {
+                counts.set("H", (counts.get("H") ?? 0) + hydrogens);
+            }
+            expect([...counts.keys()].sort()).toEqual([...ion.composition.keys()].sort());
+            for (const [symbol, need] of ion.composition) {
+                expect(counts.get(symbol)).toBe(need);
+            }
+            for (const [index] of ion.charges) {
+                expect(index).toBeLessThan(ion.heavy.length);
+            }
+            for (const [index] of ion.explicitH) {
+                expect(index).toBeLessThan(ion.heavy.length);
+            }
+            expect(ion.bindingAtom).toBeLessThan(ion.heavy.length);
+        }
+    });
+
+    it("reports atom counts and oxygen content", () => {
+        const hydroxide = PolyatomicIons.anions().find((ion) => ion.id === "hydroxide");
+        expect(hydroxide).toBeDefined();
+        expect(PolyatomicIons.atomCount(hydroxide as never)).toBe(2);
+        expect(PolyatomicIons.containsOxygen(hydroxide as never)).toBe(true);
+        const ammonium = PolyatomicIons.cations()[0];
+        expect(PolyatomicIons.containsOxygen(ammonium)).toBe(false);
+        expect(PolyatomicIons.atomCount(ammonium)).toBe(5);
+    });
+});
+
 describe("CompoundSynthesizer", () => {
     const synthesizer = new CompoundSynthesizer(new MoleculeFactory());
 
@@ -128,6 +173,16 @@ describe("CompoundSynthesizer", () => {
         expect(result.product).toBeNull();
         expect(result.hint).toContain("Cerium(III) bromide");
         expect(result.hint).toContain("3 Br");
+    });
+
+    it("ranks hints by stability and reports the limiting reagent", () => {
+        const sodium = synthesizer.predict(pool({ Na: 1, C: 1, O: 1 }));
+        expect(sodium.product).toBeNull();
+        expect(sodium.hint).toContain("Sodium oxide");
+        expect(sodium.hint).toContain("Add more Na");
+        const potassium = synthesizer.predict(pool({ K: 1, S: 1, O: 3 }));
+        expect(potassium.product).toBeNull();
+        expect(potassium.hint).toContain("Potassium oxide");
     });
 
     it("forms cerium(IV) bromide when four bromides are available", () => {
@@ -203,6 +258,56 @@ describe("CompoundSynthesizer", () => {
         expect(hydrogen.units).toBe(1);
         const iodine = synthesizer.predict(pool({ I: 2 }, { I: 2 })).product as ISynthesisProduct;
         expect(iodine.catalogId).toBe("iodine");
+    });
+
+    it("forms polyatomic ionic salts", () => {
+        const hydroxide = synthesizer.predict(pool({ Na: 1, O: 1, H: 1 }))
+            .product as ISynthesisProduct;
+        expect(hydroxide.formula).toBe("NaOH");
+        expect(hydroxide.name).toBe("Sodium hydroxide");
+        const calciumHydroxide = synthesizer.predict(pool({ Ca: 1, O: 2, H: 2 }))
+            .product as ISynthesisProduct;
+        expect(calciumHydroxide.formula).toBe("Ca(OH)2");
+        expect(calciumHydroxide.name).toBe("Calcium hydroxide");
+        const sulfate = synthesizer.predict(pool({ Na: 2, S: 1, O: 4 }))
+            .product as ISynthesisProduct;
+        expect(sulfate.formula).toBe("Na2SO4");
+        expect(sulfate.name).toBe("Sodium sulfate");
+        const nitrate = synthesizer.predict(pool({ K: 1, N: 1, O: 3 }))
+            .product as ISynthesisProduct;
+        expect(nitrate.formula).toBe("KNO3");
+        expect(nitrate.name).toBe("Potassium nitrate");
+        const carbonate = synthesizer.predict(pool({ Ca: 1, C: 1, O: 3 }))
+            .product as ISynthesisProduct;
+        expect(carbonate.formula).toBe("CaCO3");
+        expect(carbonate.name).toBe("Calcium carbonate");
+        const ferric = synthesizer.predict(pool({ Fe: 2, S: 3, O: 12 }))
+            .product as ISynthesisProduct;
+        expect(ferric.formula).toBe("Fe2(SO4)3");
+        expect(ferric.name).toBe("Iron(III) sulfate");
+    });
+
+    it("forms ammonium salts", () => {
+        const ammoniumChloride = synthesizer.predict(pool({ N: 1, H: 4, Cl: 1 }))
+            .product as ISynthesisProduct;
+        expect(ammoniumChloride.formula).toBe("NH4Cl");
+        expect(ammoniumChloride.name).toBe("Ammonium chloride");
+        const ammoniumSulfate = synthesizer.predict(pool({ N: 2, H: 8, S: 1, O: 4 }))
+            .product as ISynthesisProduct;
+        expect(ammoniumSulfate.formula).toBe("(NH4)2SO4");
+        expect(ammoniumSulfate.name).toBe("Ammonium sulfate");
+    });
+
+    it("forms elemental allotropes", () => {
+        const phosphorus = synthesizer.predict(pool({ P: 4 }, { P: 4 }))
+            .product as ISynthesisProduct;
+        expect(phosphorus.kind).toBe("elemental");
+        expect(phosphorus.formula).toBe("P4");
+        expect(phosphorus.record?.atoms.length).toBe(4);
+        const sulfur = synthesizer.predict(pool({ S: 8 }, { S: 8 })).product as ISynthesisProduct;
+        expect(sulfur.catalogId).toBe("sulfur-s8");
+        expect(sulfur.units).toBe(1);
+        expect(synthesizer.predict(pool({ S: 7 }, { S: 7 })).product).toBeNull();
     });
 
     it("does not recombine diatomics or non-stoichiometric mixes", () => {
@@ -444,6 +549,7 @@ describe("SynthesisEngine", () => {
         const br3 = new MoleculeInstance(record(registry, "el-br"), 0, 0, 1, 0, 0, 0, 0);
         const stub = {
             getInstanceList: () => [ce, br1, br2, br3],
+            params: { temperature: 298, spark: 0 },
             canAccommodate: () => false,
             remove: (): void => {},
             spawn: (): void => {},
@@ -451,6 +557,60 @@ describe("SynthesisEngine", () => {
         const { sink } = makeSink();
         synth.update(stub, new SeededRandom(6), sink);
         expect(true).toBe(true);
+    });
+
+    it("needs heat for covalent compounds but bonds ions when cold", () => {
+        const { registry, engine: synth } = engine();
+        const cold = makeWorld();
+        cold.params.temperature = 100;
+        cold.spawn(record(registry, "el-h"), 0, 0, 0, 0);
+        cold.spawn(record(registry, "el-f"), 1, 0, 0, 0);
+        const tracker = makeSink();
+        synth.update(cold, new SeededRandom(21), tracker.sink);
+        expect(cold.getInstanceList().length).toBe(2);
+        expect(tracker.events.some((event) => event.ruleId === "synthesis-hint")).toBe(true);
+        cold.params.temperature = 300;
+        synth.update(cold, new SeededRandom(21), tracker.sink);
+        expect(cold.getInstanceList().some((inst) => inst.record.formula === "HF")).toBe(true);
+
+        const coldIonic = makeWorld();
+        coldIonic.params.temperature = 100;
+        coldIonic.spawn(record(registry, "el-na"), 0, 0, 0, 0);
+        coldIonic.spawn(record(registry, "el-cl"), 1, 0, 0, 0);
+        synth.update(coldIonic, new SeededRandom(22), makeSink().sink);
+        expect(coldIonic.getInstanceList().some((inst) => inst.record.formula === "NaCl")).toBe(
+            true,
+        );
+    });
+
+    it("freezes all synthesis at absolute cold", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.params.temperature = 0;
+        world.spawn(record(registry, "el-na"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-cl"), 1, 0, 0, 0);
+        const tracker = makeSink();
+        synth.update(world, new SeededRandom(31), tracker.sink);
+        expect(world.getInstanceList().length).toBe(2);
+        expect(tracker.events.some((event) => event.ruleId === "synthesis-hint")).toBe(true);
+    });
+
+    it("lays out multiple formula units apart", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-mg"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-mg"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-o"), 0, 1, 0, 0);
+        world.spawn(record(registry, "el-o"), 1, 1, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(32), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(2);
+        expect(list.every((inst) => inst.record.formula === "MgO")).toBe(true);
+        const dx = list[0].px - list[1].px;
+        const dy = list[0].py - list[1].py;
+        const dz = list[0].pz - list[1].pz;
+        expect(Math.sqrt(dx * dx + dy * dy + dz * dz)).toBeGreaterThan(1);
     });
 
     it("bails out when a catalog product is missing", () => {

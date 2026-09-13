@@ -10,6 +10,9 @@ function MoleculeCard(properties: { vm: AppViewModel; record: IMoleculeRecord })
     const record = properties.record;
     let canvas: HTMLCanvasElement | undefined;
     const attach = (element: HTMLCanvasElement): void => {
+        if (element === undefined || element === null) {
+            return;
+        }
         canvas = element;
         thumbnails.watch(element, record);
     };

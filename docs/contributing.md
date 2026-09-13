@@ -8,7 +8,7 @@ Use `bun` for everything. Never `npm` or `npx`; use `bunx` for one-off tools.
 bun install
 bun run dev          # develop with hot reload
 bun run build        # produce dist/index.html
-bun run test         # run the Vitest suite (221 tests, 100 percent coverage)
+bun run test         # run the Vitest suite (234 tests, 100 percent coverage)
 bun run validate     # validate all 507 molecules
 bun run bake > docs/molecules.md  # regenerate the molecule listing
 bun run docs:dev     # preview this site
@@ -37,7 +37,7 @@ Append a row to `ElementRegistry` with atomic number, standard mass, covalent an
 
 ## Extend synthesis
 
-Synthesis needs no rule entry for new salts; the oxidation-state table already covers them. To widen the covalent set, add a mapping in `CompoundSynthesizer` (`COVALENT_CATALOG` for an existing molecule, `COVALENT_SYNTH` for a generated record). To change which charge a metal prefers, reorder its `cations` list. Cover every branch in `tests/synthesis.test.ts`, including the stoichiometry hint path and atom conservation.
+Synthesis needs no rule entry for new monatomic salts; the oxidation-state table already covers them. To add a polyatomic ion, append a row to `src/chem/PolyatomicIons.ts` with its formula, charge, element composition, heavy-atom graph, formal charges, explicit hydrogens, binding atom, and preference rank. The test suite asserts that every ion's formal charges sum to its declared charge and that its composition matches its atoms, so a typo fails fast. To widen the covalent set, add a mapping in `CompoundSynthesizer` (`COVALENT_CATALOG` for an existing molecule, `COVALENT_SYNTH` for a generated record). To add an elemental allotrope, extend `ALLOTROPES`. To change which charge a metal prefers, reorder its `cations` list. Cover every branch in `tests/synthesis.test.ts`, including the stoichiometry hint path, the kinetic gate, atom conservation, and multi-unit layout.
 
 ## Add a preset
 

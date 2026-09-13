@@ -421,7 +421,7 @@ describe("AppShell coverage", () => {
         unmount();
     });
 
-    it("switches between the library and the analysis panel", () => {
+    it("switches between the side panels", () => {
         const { vm } = makeVm();
         const callbacks = {
             onCanvasMount: () => {},
@@ -436,6 +436,10 @@ describe("AppShell coverage", () => {
         const targetRule = vm.getMeasureData().rules[1].id;
         fireEvent.change(select, { target: { value: targetRule } });
         expect(vm.getSelectedRuleId()).toBe(targetRule);
+        fireEvent.click(screen.getByRole("button", { name: "Reference" }));
+        expect(vm.getPanel()).toBe("reference");
+        expect(screen.getByText("Periodic table")).toBeInTheDocument();
+        expect(screen.getByText("Gas constant R")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: "Molecules" }));
         expect(vm.getPanel()).toBe("library");
         unmount();

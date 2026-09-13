@@ -4,6 +4,7 @@ import type { AppViewModel } from "./AppViewModel";
 import { LibraryView } from "./LibraryView";
 import { LogView } from "./LogView";
 import { MeasureView } from "./MeasureView";
+import { ReferenceView } from "./ReferenceView";
 import { PresetsView } from "./PresetsView";
 import { SlidersView } from "./SlidersView";
 import { TabsView } from "./TabsView";
@@ -74,18 +75,29 @@ export function AppShell(properties: {
                         >
                             Analyze
                         </button>
+                        <button
+                            class={
+                                vm.getPanel() === "reference"
+                                    ? "mf-panel-btn mf-active"
+                                    : "mf-panel-btn"
+                            }
+                            onClick={() => vm.selectPanel("reference")}
+                        >
+                            Reference
+                        </button>
                     </div>
-                    <Show
-                        when={vm.getPanel() === "library"}
-                        fallback={
-                            <MeasureView
-                                data={vm.getMeasureData()}
-                                onSelectRule={(ruleId) => vm.setSelectedRuleId(ruleId)}
-                            />
-                        }
-                    >
+                    <Show when={vm.getPanel() === "library"}>
                         <TabsView vm={vm} />
                         <LibraryView vm={vm} />
+                    </Show>
+                    <Show when={vm.getPanel() === "analyze"}>
+                        <MeasureView
+                            data={vm.getMeasureData()}
+                            onSelectRule={(ruleId) => vm.setSelectedRuleId(ruleId)}
+                        />
+                    </Show>
+                    <Show when={vm.getPanel() === "reference"}>
+                        <ReferenceView data={vm.getReferenceData()} />
                     </Show>
                 </aside>
                 <div class="mf-stage">

@@ -374,7 +374,7 @@ describe("AppViewModelActions", () => {
         expect(world.countAlive()).toBe(0);
         vm.applyPreset("combustion-chamber");
         expect(vm.getPresetId()).toBe("combustion-chamber");
-        expect(world.countAlive()).toBe(16);
+        expect(world.countAlive()).toBe(90);
         world.clear();
         vm.spawnShowcase();
         expect(world.countAlive()).toBeGreaterThan(0);

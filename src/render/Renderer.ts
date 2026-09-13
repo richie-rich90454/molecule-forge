@@ -283,6 +283,7 @@ export class Renderer {
                         bz: b.z,
                         order: bond.order,
                         aromatic: bond.aromatic,
+                        ionic: bond.ionic === true,
                     });
                 }
             }

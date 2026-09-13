@@ -82,9 +82,9 @@ class FakeRegistry implements IMoleculeRegistry {
             tags: ["monomer"],
         };
         const polystyrene: IMoleculeRecord = {
-            ...makeRecord("polystyrene", false, 16, 0),
+            ...makeRecord("polystyrene", false, 48, 0),
             name: "Polystyrene",
-            formula: "C16H16",
+            formula: "C48H48",
             tags: ["polymer"],
         };
         const giant: IMoleculeRecord = {
@@ -100,9 +100,9 @@ class FakeRegistry implements IMoleculeRegistry {
             category: "alkenes",
         };
         const polyethylene: IMoleculeRecord = {
-            ...makeRecord("polyethylene", false, 6, 0),
+            ...makeRecord("polyethylene", false, 20, 0),
             name: "Polyethylene",
-            formula: "C6H12",
+            formula: "C20H40",
             category: "polymers",
             tags: ["polymer"],
         };
@@ -356,12 +356,12 @@ describe("AppViewModelActions", () => {
         for (let i = 0; i < 18; i++) {
             world.spawn(styrene, i, 0, 0, 0);
         }
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 40; i++) {
             world.spawn(ethene, i, 5, 0, 0);
         }
         vm.polymerize();
-        expect(world.findInstances("polystyrene", null, 10).length).toBe(4);
-        expect(world.findInstances("polyethylene", null, 10).length).toBe(2);
+        expect(world.findInstances("polystyrene", null, 10).length).toBe(3);
+        expect(world.findInstances("polyethylene", null, 10).length).toBe(3);
     });
 
     it("applies presets and restores the showcase", () => {

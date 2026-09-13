@@ -315,6 +315,10 @@ export class AppViewModel implements IReactionSink {
             this.addLog("The chamber is full. Clear or remove molecules first.", true);
             return false;
         }
+        if (!this.world.canAccommodate(record.atoms.length)) {
+            this.addLog("Atom budget reached. Clear or remove molecules first.", true);
+            return false;
+        }
         const speed = 2 + this.world.params.temperature / 200;
         this.world.spawn(record, x, y, z, speed);
         this.setCount(this.world.countAlive());
@@ -348,7 +352,9 @@ export class AppViewModel implements IReactionSink {
 
     public spark(): void {
         this.world.params.spark = 1;
-        this.addLog("Spark cracks through the chamber.", true);
+        this.setTemperature(Math.min(1500, this.getTemperature() + 150));
+        this.syncParamsToWorld();
+        this.addLog("Spark cracks through the chamber. Gas heats toward ignition.", true);
         this.effects.burst(0, 0, 0, "spark", this.getSeed());
         this.sound.playWhoosh();
     }
@@ -356,10 +362,24 @@ export class AppViewModel implements IReactionSink {
     public detonate(): void {
         const instances = this.world.getInstanceList();
         const volatile = instances.filter((inst) => inst.record.tags.includes("explosive"));
+        const fuels = instances.filter(
+            (inst) => inst.record.tags.includes("fuel") || inst.record.category === "alkenes",
+        );
+        const oxidizers = instances.filter(
+            (inst) => inst.record.id === "oxygen" || inst.record.id === "fluorine",
+        );
         this.world.params.spark = 1;
-        if (volatile.length === 0) {
-            this.addLog("Nothing volatile in the chamber. Add explosives first.", true);
+        this.setTemperature(Math.max(this.getTemperature(), 950));
+        this.syncParamsToWorld();
+        if (volatile.length === 0 && (fuels.length === 0 || oxidizers.length === 0)) {
+            this.addLog("Nothing burnable in the chamber. Add fuel plus oxygen first.", true);
             return;
+        }
+        if (fuels.length > 0 && oxidizers.length > 0) {
+            this.addLog(
+                "Detonation lights the fuel air mix. Combustion takes over from here.",
+                true,
+            );
         }
         const rng = new SeededRandom(this.getSeed() + this.logCounter);
         for (const inst of volatile) {
@@ -379,8 +399,12 @@ export class AppViewModel implements IReactionSink {
                 inst.vz += (rng.next() - 0.5) * 40;
             }
         }
-        this.addLog("Detonation! " + volatile.length + " charges fired.", true);
-        this.sound.playBoom();
+        if (volatile.length > 0) {
+            this.addLog("Detonation! " + volatile.length + " charges fired.", true);
+            this.sound.playBoom();
+        } else {
+            this.sound.playWhoosh();
+        }
         this.setCount(this.world.countAlive());
     }
 
@@ -406,6 +430,10 @@ export class AppViewModel implements IReactionSink {
                 continue;
             }
             for (let i = 0; i + 2 < monomers.length; i += 3) {
+                if (!this.world.canAccommodate(polymer.atoms.length)) {
+                    this.addLog("Atom budget reached. Clear or remove molecules first.", true);
+                    break;
+                }
                 let cx = 0;
                 let cy = 0;
                 let cz = 0;
@@ -505,6 +533,9 @@ export class AppViewModel implements IReactionSink {
                 const y = (rng.next() - 0.5) * 2 * half;
                 const z = (rng.next() - 0.5) * 2 * half;
                 const speed = 2 + this.world.params.temperature / 200;
+                if (!this.world.canAccommodate(record.atoms.length)) {
+                    break;
+                }
                 this.world.spawn(record, x, y, z, speed);
                 if (this.world.countAlive() >= MAX_INSTANCES) {
                     break;
@@ -539,6 +570,9 @@ export class AppViewModel implements IReactionSink {
             }
             const count = id === "water" || id === "oxygen" ? 6 : 2;
             for (let i = 0; i < count; i++) {
+                if (!this.world.canAccommodate(record.atoms.length)) {
+                    break;
+                }
                 this.world.spawn(
                     record,
                     (rng.next() - 0.5) * 2 * half,

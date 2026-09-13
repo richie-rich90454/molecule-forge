@@ -295,6 +295,7 @@ export class SynthesisEngine {
             z: center.z,
             flash: FLASH,
             particles: "link",
+            deltaH: product.enthalpy === null ? undefined : product.enthalpy,
         });
     }
 

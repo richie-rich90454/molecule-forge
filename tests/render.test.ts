@@ -279,6 +279,7 @@ describe("BondMeshRenderer", () => {
         bz: number;
         order: number;
         aromatic: boolean;
+        ionic?: boolean;
     }> {
         return [
             { ax: 0, ay: 0, az: 0, bx: 1.5, by: 0, bz: 0, order: 1, aromatic: false },
@@ -287,6 +288,7 @@ describe("BondMeshRenderer", () => {
             { ax: 0, ay: 0, az: 6, bx: 1.4, by: 0, bz: 6, order: 4, aromatic: true },
             { ax: 5, ay: 5, az: 5, bx: 5, by: 5, bz: 5, order: 1, aromatic: false },
             { ax: 0, ay: 0, az: 8, bx: 0, by: 2, bz: 8, order: 1, aromatic: false },
+            { ax: 0, ay: 0, az: 10, bx: 2, by: 0, bz: 10, order: 1, aromatic: false, ionic: true },
         ];
     }
 
@@ -398,7 +400,7 @@ describe("RendererFacade", () => {
                     { el: "Na", x: 0, y: 0, z: 0, charge: 1, stereo: null, aromatic: false },
                     { el: "Xx", x: 2, y: 0, z: 0, charge: 0, stereo: null, aromatic: false },
                 ],
-                bonds: [],
+                bonds: [{ a: 0, b: 1, order: 1, aromatic: false, stereo: null, ionic: true }],
             },
             0,
             0,

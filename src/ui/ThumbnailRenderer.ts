@@ -115,7 +115,6 @@ export class ThumbnailRenderer {
         const cx = width / 2;
         const cy = height / 2;
         ctx.lineWidth = Math.max(1, dpr * 0.75);
-        ctx.strokeStyle = "rgba(190,210,255,0.55)";
         for (const bond of item.record.bonds) {
             const a = atoms[bond.a];
             const b = atoms[bond.b];
@@ -126,10 +125,26 @@ export class ThumbnailRenderer {
             const ay = cy + (a.y * 0.9 - (a.z * cosA - a.x * sinA) * 0.25) * scale;
             const bx = cx + (b.x * cosA + b.z * sinA) * scale;
             const by = cy + (b.y * 0.9 - (b.z * cosA - b.x * sinA) * 0.25) * scale;
-            ctx.beginPath();
-            ctx.moveTo(ax, ay);
-            ctx.lineTo(bx, by);
-            ctx.stroke();
+            if (bond.ionic === true) {
+                ctx.strokeStyle = "rgba(203,182,255,0.7)";
+                const dx = bx - ax;
+                const dy = by - ay;
+                const segments = 4;
+                for (let i = 0; i < segments; i++) {
+                    const t0 = (i + 0.15) / segments;
+                    const t1 = (i + 0.6) / segments;
+                    ctx.beginPath();
+                    ctx.moveTo(ax + dx * t0, ay + dy * t0);
+                    ctx.lineTo(ax + dx * t1, ay + dy * t1);
+                    ctx.stroke();
+                }
+            } else {
+                ctx.strokeStyle = "rgba(190,210,255,0.55)";
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(bx, by);
+                ctx.stroke();
+            }
         }
         const projected: Array<{ x: number; y: number; depth: number; el: string }> = [];
         for (const atom of atoms) {

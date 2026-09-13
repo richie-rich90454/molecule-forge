@@ -93,7 +93,13 @@ export function SlidersView(properties: { vm: AppViewModel; onChange: () => void
         <div class="mf-sliders">
             {sliders.map((slider) => (
                 <div class="mf-slider">
-                    <label>{slider.label}</label>
+                    <div class="mf-slider-head">
+                        <label>{slider.label}</label>
+                        <output>
+                            {slider.get().toFixed(slider.step < 0.1 ? 2 : slider.step < 1 ? 1 : 0)}
+                            {slider.unit}
+                        </output>
+                    </div>
                     <input
                         type="range"
                         min={slider.min}
@@ -105,10 +111,6 @@ export function SlidersView(properties: { vm: AppViewModel; onChange: () => void
                             onChange();
                         }}
                     />
-                    <output>
-                        {slider.get().toFixed(slider.step < 0.1 ? 2 : slider.step < 1 ? 1 : 0)}
-                        {slider.unit}
-                    </output>
                 </div>
             ))}
         </div>

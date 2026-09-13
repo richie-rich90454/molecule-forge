@@ -1,0 +1,43 @@
+:root {
+    --vp-c-brand-1: #ace1af;
+    --vp-c-brand-2: #8fcb92;
+    --vp-c-brand-3: #6faf73;
+    --vp-c-brand-soft: rgba(172, 225, 175, 0.14);
+    --vp-c-bg: #050508;
+    --vp-c-bg-alt: #0b0d17;
+    --vp-c-bg-elv: #10131f;
+    --vp-c-bg-soft: #141828;
+    --vp-c-divider: #2a3049;
+    --vp-c-border: #2a3049;
+    --vp-c-text-1: #e8ecf4;
+    --vp-c-text-2: #9aa3b5;
+    --vp-c-text-3: #6b7386;
+    --vp-code-block-bg: #0b0d17;
+    --vp-code-line-highlight-color: rgba(172, 225, 175, 0.08);
+}
+
+.dark {
+    --vp-c-bg: #050508;
+    --vp-c-bg-alt: #0b0d17;
+}
+
+.VPHero .name,
+.VPHero .text {
+    color: var(--vp-c-text-1);
+}
+
+.VPHero .tagline {
+    color: var(--vp-c-text-2);
+}
+
+a {
+    text-decoration: none;
+}
+
+table {
+    font-size: 13px;
+}
+
+code {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}

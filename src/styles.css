@@ -27,9 +27,8 @@
 
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-    --sans:
-        -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Noto Sans Mono", monospace;
+    --sans: "Noto Sans", sans-serif;
 }
 
 * {

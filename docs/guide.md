@@ -12,7 +12,17 @@ The toolbar floating over the canvas picks exactly one interaction mode, so clic
 
 ## Library
 
-The left panel holds sixteen category tabs, from alkanes to natural products, with a live rotating thumbnail per molecule. Cards show the name, formula, and a red skull badge for warning molecules. Warning molecules cannot spawn while the Warnings toggle is off.
+The left panel holds seventeen category tabs, from alkanes to the elemental table, with a live rotating thumbnail per molecule. Cards show the name, formula, and a hazard badge for warning molecules. Warning molecules cannot spawn while the Warnings toggle is off.
+
+## Forming compounds
+
+Open the **Elements** tab, then place loose atoms next to each other and watch real bonding:
+
+- Place a metal and a nonmetal close together and an ionic compound forms. Cerium plus three bromine atoms becomes CeBr3, cerium(III) bromide. Iron plus oxygen becomes Fe2O3, iron(III) oxide.
+- Two atoms of a diatomic former combine on contact: oxygen into O2, hydrogen into H2, iodine into I2.
+- Place a carbon, two oxygens, and hydrogen together to build carbon dioxide and water.
+
+Atoms are conserved. If the local cluster has the wrong ratio, nothing is invented and the log tells you what is missing, for example "Cerium(III) bromide needs 1 Ce and 3 Br per unit. Add more Br." The product appears as a new molecule instance you can inspect, drag, and react further. Synthesis runs on the same fixed-step clock as everything else, so heating a scene speeds it up.
 
 ## Sliders
 
@@ -36,12 +46,12 @@ Heat, Cool, Freeze, and Shake set conditions fast. Spark arms ignition and warms
 
 ## Toggles
 
-Bonds, Charges, Orbitals, Arrows, Grid, Graph, Slow motion, Bloom, Sound (off by default), and Warnings each switch one visual or audio layer. Graph mode renders wireframe shells that expose the underlying molecular graphs. The spatial grid toggle draws the neighbor-search lattice the physics engine uses.
+Bonds, Charges, Orbitals, Arrows, Grid, Graph, Slow motion, Bloom, Sound (off by default), and Warnings each switch one visual or audio layer. Graph mode renders wireframe shells that expose the underlying molecular graphs. The spatial grid toggle draws the neighbor-search lattice the physics engine uses. Charges draws the glow on formal ions, which makes fresh ionic compounds easy to spot.
 
 ## Presets and seeds
 
-Twenty scenarios ship with fixed seeds, so Combustion Chamber today is Combustion Chamber tomorrow. The seed button rerolls the seed used by paint jitter, detonation scatter, and reaction rolls. Every preset writes its state into the address bar hash.
+Thirty-six scenarios ship with fixed seeds, so Combustion Chamber today is Combustion Chamber tomorrow. The seed button rerolls the seed used by paint jitter, detonation scatter, synthesis jitter, and reaction rolls. Every preset writes its state into the address bar hash.
 
 ## Atom budget
 
-The chamber holds at most 2500 molecules and 200000 atoms. Giant structures like DNA duplexes and insulin consume budget fast. When the budget fills, spawning refuses with a log line instead of crashing the tab. Clear or erase to make room.
+The chamber holds at most 2500 molecules and 200000 atoms. Giant structures like DNA duplexes and insulin consume budget fast. When the budget fills, spawning refuses with a log line instead of crashing the tab. Clear or erase to make room. Synthesis respects the same budget: it will not consume reactants if the products would overflow the chamber.

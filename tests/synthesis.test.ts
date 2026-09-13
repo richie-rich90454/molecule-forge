@@ -310,6 +310,38 @@ describe("CompoundSynthesizer", () => {
         expect(synthesizer.predict(pool({ S: 7 }, { S: 7 })).product).toBeNull();
     });
 
+    it("computes reaction enthalpies", () => {
+        const water = synthesizer.predict(pool({ H: 2, O: 1 })).product as ISynthesisProduct;
+        expect(water.enthalpy).toBeCloseTo(-926.8, 1);
+        const hydrogen = synthesizer.predict(pool({ H: 2 }, { H: 2 })).product as ISynthesisProduct;
+        expect(hydrogen.enthalpy).toBeCloseTo(-436, 1);
+        const hf = synthesizer.predict(pool({ H: 1, F: 1 })).product as ISynthesisProduct;
+        expect(hf.enthalpy).toBeCloseTo(-568.1, 1);
+        const salt = synthesizer.predict(pool({ Na: 1, Cl: 1 })).product as ISynthesisProduct;
+        expect(salt.enthalpy).not.toBeNull();
+        expect(salt.enthalpy as number).toBeLessThan(-300);
+        const krypton = synthesizer.predict(pool({ Kr: 1, F: 2 })).product as ISynthesisProduct;
+        expect(krypton.enthalpy).toBeCloseTo(-350, 1);
+        const hydroxide = synthesizer.predict(pool({ Na: 1, O: 1, H: 1 }))
+            .product as ISynthesisProduct;
+        expect(hydroxide.enthalpy).toBeNull();
+    });
+
+    it("forms generated oxyanion salts beyond the table", () => {
+        const bromate = synthesizer.predict(pool({ Na: 1, Br: 1, O: 3 }))
+            .product as ISynthesisProduct;
+        expect(bromate.formula).toBe("NaBrO3");
+        expect(bromate.name).toBe("Sodium bromate");
+        const iodate = synthesizer.predict(pool({ K: 1, I: 1, O: 3 })).product as ISynthesisProduct;
+        expect(iodate.formula).toBe("KIO3");
+        const selenate = synthesizer.predict(pool({ Ca: 1, Se: 1, O: 4 }))
+            .product as ISynthesisProduct;
+        expect(selenate.formula).toBe("CaSeO4");
+        const antimonate = synthesizer.predict(pool({ Na: 3, Sb: 1, O: 4 }))
+            .product as ISynthesisProduct;
+        expect(antimonate.formula).toBe("Na3SbO4");
+    });
+
     it("does not recombine diatomics or non-stoichiometric mixes", () => {
         expect(synthesizer.predict(pool({ O: 2 }, {})).product).toBeNull();
         expect(synthesizer.predict(pool({ H: 1, O: 1 })).product).toBeNull();
@@ -611,6 +643,104 @@ describe("SynthesisEngine", () => {
         const dy = list[0].py - list[1].py;
         const dz = list[0].pz - list[1].pz;
         expect(Math.sqrt(dx * dx + dy * dy + dz * dz)).toBeGreaterThan(1);
+    });
+
+    it("forms sodium hydroxide in the chamber with a computed message", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-na"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-o"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-h"), 0, 1, 0, 0);
+        const tracker = makeSink();
+        synth.update(world, new SeededRandom(51), tracker.sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(1);
+        expect(list[0].record.formula).toBe("NaOH");
+        expect(tracker.events.some((event) => event.message.includes("Sodium hydroxide"))).toBe(
+            true,
+        );
+    });
+
+    it("blocks strongly endothermic products until heated", () => {
+        const registry = makeRegistry();
+        const fake = {
+            predict: () => ({
+                product: {
+                    kind: "covalent",
+                    catalogId: "water",
+                    record: null,
+                    name: "Water",
+                    formula: "Water",
+                    needs: new Map([
+                        ["H", 2],
+                        ["O", 1],
+                    ]),
+                    units: 1,
+                    enthalpy: 200,
+                },
+                hint: null,
+            }),
+        } as unknown as CompoundSynthesizer;
+        const synth = new SynthesisEngine(registry, fake);
+        const world = makeWorld();
+        world.spawn(record(registry, "el-h"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-h"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-o"), 0, 1, 0, 0);
+        const tracker = makeSink();
+        synth.update(world, new SeededRandom(41), tracker.sink);
+        expect(world.getInstanceList().length).toBe(3);
+        expect(tracker.events.some((event) => event.ruleId === "synthesis-hint")).toBe(true);
+        world.params.temperature = 900;
+        synth.update(world, new SeededRandom(41), tracker.sink);
+        expect(world.getInstanceList().some((inst) => inst.record.formula === "H2O")).toBe(true);
+    });
+
+    it("raises the bar for endothermic products in a salty chamber", () => {
+        const registry = makeRegistry();
+        const fake = {
+            predict: () => ({
+                product: {
+                    kind: "ionic",
+                    catalogId: "water",
+                    record: null,
+                    name: "Water",
+                    formula: "Water",
+                    needs: new Map([
+                        ["H", 2],
+                        ["O", 1],
+                    ]),
+                    units: 1,
+                    enthalpy: 90,
+                },
+                hint: null,
+            }),
+        } as unknown as CompoundSynthesizer;
+        const synth = new SynthesisEngine(registry, fake);
+        const clean = makeWorld();
+        clean.params.temperature = 700;
+        clean.spawn(record(registry, "el-h"), 0, 0, 0, 0);
+        clean.spawn(record(registry, "el-h"), 1, 0, 0, 0);
+        clean.spawn(record(registry, "el-o"), 0, 1, 0, 0);
+        synth.update(clean, new SeededRandom(61), makeSink().sink);
+        expect(clean.getInstanceList().some((inst) => inst.record.formula === "H2O")).toBe(true);
+
+        const salty = makeWorld();
+        salty.params.temperature = 700;
+        const salt = new CompoundSynthesizer(new MoleculeFactory()).predict({
+            totals: new Map([
+                ["Na", 1],
+                ["Cl", 1],
+            ]),
+            monatomic: new Map(),
+        }).product?.record as IMoleculeRecord;
+        for (let i = 0; i < 8; i++) {
+            salty.spawn(salt, i, 0, 0, 0);
+        }
+        salty.spawn(record(registry, "el-h"), 0, 5, 0, 0);
+        salty.spawn(record(registry, "el-h"), 1, 5, 0, 0);
+        salty.spawn(record(registry, "el-o"), 0, 6, 0, 0);
+        synth.update(salty, new SeededRandom(61), makeSink().sink);
+        expect(salty.getInstanceList().some((inst) => inst.record.formula === "H2O")).toBe(false);
     });
 
     it("bails out when a catalog product is missing", () => {

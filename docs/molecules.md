@@ -1,3 +1,5 @@
+$ bun scripts/bake-molecules.ts
+
 # Molecule Forge Library
 
 Every molecule below is generated from a compact graph record, expanded with implicit hydrogens, embedded in 3D with CSD-derived bond tables, relaxed, and validated for valence, bond length, formula, and mass. Warning molecules carry a skull badge in the app.
@@ -410,5 +412,106 @@ Every molecule below is generated from a compact graph record, expanded with imp
 | Resveratrol | C14H12O3 | natural | no | `OC1=CC=C(C=C1)C=Cc2cc(O)cc(O)c2` |
 | Theobromine | C7H8N4O2 | natural | no | `CN1C=NC2=C1C(=O)N(C)C(=O)2` |
 | Nicotine | C10H14N2 | natural | no | `CN1CCCC1C2=CN=CC=C2` |
+| Hydrogen atom | H | elemental | no | `[H]` |
+| Helium atom | He | elemental | no | `[He]` |
+| Lithium atom | Li | elemental | no | `[Li]` |
+| Beryllium atom | Be | elemental | no | `[Be]` |
+| Boron atom | B | elemental | no | `[B]` |
+| Carbon atom | C | elemental | no | `[C]` |
+| Nitrogen atom | N | elemental | no | `[N]` |
+| Oxygen atom | O | elemental | no | `[O]` |
+| Fluorine atom | F | elemental | no | `[F]` |
+| Neon atom | Ne | elemental | no | `[Ne]` |
+| Sodium atom | Na | elemental | no | `[Na]` |
+| Magnesium atom | Mg | elemental | no | `[Mg]` |
+| Aluminum atom | Al | elemental | no | `[Al]` |
+| Silicon atom | Si | elemental | no | `[Si]` |
+| Phosphorus atom | P | elemental | no | `[P]` |
+| Sulfur atom | S | elemental | no | `[S]` |
+| Chlorine atom | Cl | elemental | no | `[Cl]` |
+| Argon atom | Ar | elemental | no | `[Ar]` |
+| Potassium atom | K | elemental | no | `[K]` |
+| Calcium atom | Ca | elemental | no | `[Ca]` |
+| Scandium atom | Sc | elemental | no | `[Sc]` |
+| Titanium atom | Ti | elemental | no | `[Ti]` |
+| Vanadium atom | V | elemental | no | `[V]` |
+| Chromium atom | Cr | elemental | no | `[Cr]` |
+| Manganese atom | Mn | elemental | no | `[Mn]` |
+| Iron atom | Fe | elemental | no | `[Fe]` |
+| Cobalt atom | Co | elemental | no | `[Co]` |
+| Nickel atom | Ni | elemental | no | `[Ni]` |
+| Copper atom | Cu | elemental | no | `[Cu]` |
+| Zinc atom | Zn | elemental | no | `[Zn]` |
+| Gallium atom | Ga | elemental | no | `[Ga]` |
+| Germanium atom | Ge | elemental | no | `[Ge]` |
+| Arsenic atom | As | elemental | no | `[As]` |
+| Selenium atom | Se | elemental | no | `[Se]` |
+| Bromine atom | Br | elemental | no | `[Br]` |
+| Krypton atom | Kr | elemental | no | `[Kr]` |
+| Rubidium atom | Rb | elemental | no | `[Rb]` |
+| Strontium atom | Sr | elemental | no | `[Sr]` |
+| Yttrium atom | Y | elemental | no | `[Y]` |
+| Zirconium atom | Zr | elemental | no | `[Zr]` |
+| Niobium atom | Nb | elemental | no | `[Nb]` |
+| Molybdenum atom | Mo | elemental | no | `[Mo]` |
+| Technetium atom | Tc | elemental | yes | `[Tc]` |
+| Ruthenium atom | Ru | elemental | no | `[Ru]` |
+| Rhodium atom | Rh | elemental | no | `[Rh]` |
+| Palladium atom | Pd | elemental | no | `[Pd]` |
+| Silver atom | Ag | elemental | no | `[Ag]` |
+| Cadmium atom | Cd | elemental | no | `[Cd]` |
+| Indium atom | In | elemental | no | `[In]` |
+| Tin atom | Sn | elemental | no | `[Sn]` |
+| Antimony atom | Sb | elemental | no | `[Sb]` |
+| Tellurium atom | Te | elemental | no | `[Te]` |
+| Iodine atom | I | elemental | no | `[I]` |
+| Xenon atom | Xe | elemental | no | `[Xe]` |
+| Cesium atom | Cs | elemental | no | `[Cs]` |
+| Barium atom | Ba | elemental | no | `[Ba]` |
+| Lanthanum atom | La | elemental | no | `[La]` |
+| Cerium atom | Ce | elemental | no | `[Ce]` |
+| Praseodymium atom | Pr | elemental | no | `[Pr]` |
+| Neodymium atom | Nd | elemental | no | `[Nd]` |
+| Promethium atom | Pm | elemental | yes | `[Pm]` |
+| Samarium atom | Sm | elemental | no | `[Sm]` |
+| Europium atom | Eu | elemental | no | `[Eu]` |
+| Gadolinium atom | Gd | elemental | no | `[Gd]` |
+| Terbium atom | Tb | elemental | no | `[Tb]` |
+| Dysprosium atom | Dy | elemental | no | `[Dy]` |
+| Holmium atom | Ho | elemental | no | `[Ho]` |
+| Erbium atom | Er | elemental | no | `[Er]` |
+| Thulium atom | Tm | elemental | no | `[Tm]` |
+| Ytterbium atom | Yb | elemental | no | `[Yb]` |
+| Lutetium atom | Lu | elemental | no | `[Lu]` |
+| Hafnium atom | Hf | elemental | no | `[Hf]` |
+| Tantalum atom | Ta | elemental | no | `[Ta]` |
+| Tungsten atom | W | elemental | no | `[W]` |
+| Rhenium atom | Re | elemental | no | `[Re]` |
+| Osmium atom | Os | elemental | no | `[Os]` |
+| Iridium atom | Ir | elemental | no | `[Ir]` |
+| Platinum atom | Pt | elemental | no | `[Pt]` |
+| Gold atom | Au | elemental | no | `[Au]` |
+| Mercury atom | Hg | elemental | no | `[Hg]` |
+| Thallium atom | Tl | elemental | no | `[Tl]` |
+| Lead atom | Pb | elemental | no | `[Pb]` |
+| Bismuth atom | Bi | elemental | no | `[Bi]` |
+| Polonium atom | Po | elemental | yes | `[Po]` |
+| Astatine atom | At | elemental | yes | `[At]` |
+| Radon atom | Rn | elemental | yes | `[Rn]` |
+| Francium atom | Fr | elemental | yes | `[Fr]` |
+| Radium atom | Ra | elemental | yes | `[Ra]` |
+| Actinium atom | Ac | elemental | yes | `[Ac]` |
+| Thorium atom | Th | elemental | yes | `[Th]` |
+| Protactinium atom | Pa | elemental | yes | `[Pa]` |
+| Uranium atom | U | elemental | yes | `[U]` |
+| Neptunium atom | Np | elemental | yes | `[Np]` |
+| Plutonium atom | Pu | elemental | yes | `[Pu]` |
+| Hydrogen | H2 | elemental | no | `[H][H]` |
+| Nitrogen | N2 | elemental | no | `N#N` |
+| Oxygen | O2 | elemental | no | `O=O` |
+| Fluorine | F2 | elemental | no | `FF` |
+| Chlorine | Cl2 | elemental | no | `ClCl` |
+| Bromine | Br2 | elemental | no | `BrBr` |
+| Iodine | I2 | elemental | no | `II` |
 
-Total: 406 molecules, 0 validation failures.
+Total: 507 molecules, 0 validation failures.

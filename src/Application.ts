@@ -1,5 +1,6 @@
 import { render } from "solid-js/web";
 import { SoundEngine } from "./audio/SoundEngine";
+import { CompoundSynthesizer } from "./chem/CompoundSynthesizer";
 import { MoleculeFactory } from "./chem/MoleculeFactory";
 import { MoleculeRegistry } from "./chem/MoleculeRegistry";
 import { PresetCatalog } from "./presets/PresetCatalog";
@@ -11,6 +12,7 @@ import { LennardJonesCalculator } from "./sim/LennardJonesCalculator";
 import { ReactionCatalog } from "./sim/ReactionCatalog";
 import { ReactionEngine } from "./sim/ReactionEngine";
 import { SeededRandom } from "./sim/SeededRandom";
+import { SynthesisEngine } from "./sim/SynthesisEngine";
 import { World } from "./sim/World";
 import { PhysicsEngine } from "./sim/PhysicsEngine";
 import { SnapshotCodec } from "./state/SnapshotCodec";
@@ -23,6 +25,7 @@ export class Application implements IEffectSink {
     private readonly world: World;
     private readonly engine: PhysicsEngine;
     private readonly reactions: ReactionEngine;
+    private readonly synthesis: SynthesisEngine;
     private readonly sound: SoundEngine;
     private readonly vm: AppViewModel;
     private readonly simRng: SeededRandom;
@@ -61,6 +64,7 @@ export class Application implements IEffectSink {
         );
         this.world = new World(this.engine, 1101);
         this.reactions = new ReactionEngine(ReactionCatalog.buildRules(), this.registry);
+        this.synthesis = new SynthesisEngine(this.registry, new CompoundSynthesizer(factory));
         this.sound = new SoundEngine();
         this.vm = new AppViewModel(this.registry, this.world, this.sound, this);
         this.vm.initialize();
@@ -330,6 +334,7 @@ export class Application implements IEffectSink {
                     this.reactionTick++;
                     if (this.reactionTick % 12 === 0) {
                         this.reactions.update(this.world, this.simRng, this.vm);
+                        this.synthesis.update(this.world, this.simRng, this.vm);
                     }
                     budgeted--;
                     if (this.world.countAlive() === 0) {

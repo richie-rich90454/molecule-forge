@@ -3,7 +3,7 @@ layout: home
 hero:
     name: Molecule Forge
     text: A chemistry sandbox that runs on physics
-    tagline: Spawn 400 real molecules. Drag the temperature. Press Detonate. Everything runs from one HTML file with no backend and no typing.
+    tagline: Spawn 406 real molecules. Drag the temperature. Press Detonate. Everything runs from one HTML file with no backend and no typing.
     actions:
         - theme: brand
           text: Playing guide

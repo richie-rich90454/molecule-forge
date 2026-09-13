@@ -38,6 +38,7 @@ export class MoleculeCatalog {
         inchi: string = "",
         charges: ReadonlyArray<readonly [number, number]> = [],
         explicitH: ReadonlyArray<readonly [number, number]> = [],
+        ionicBonds: ReadonlyArray<readonly [number, number]> = [],
     ): ICompactMoleculeSpec {
         return {
             id,
@@ -52,6 +53,7 @@ export class MoleculeCatalog {
             bonds,
             charges,
             explicitH,
+            ionicBonds,
         };
     }
 
@@ -2765,13 +2767,15 @@ export class MoleculeCatalog {
                 "functional",
                 ["salt"],
                 ["Na", "Cl"],
-                [],
+                [[0, 1, 1]],
                 false,
                 "",
                 [
                     [0, 1],
                     [1, -1],
                 ],
+                [],
+                [[0, 1]],
             ),
             MoleculeCatalog.make(
                 "hydrogen-peroxide",
@@ -2795,6 +2799,7 @@ export class MoleculeCatalog {
                     [0, 1, 1],
                     [1, 2, 2],
                     [1, 3, 1],
+                    [3, 4, 1],
                 ],
                 false,
                 "",
@@ -2802,6 +2807,8 @@ export class MoleculeCatalog {
                     [3, -1],
                     [4, 1],
                 ],
+                [[4, 4]],
+                [[3, 4]],
             ),
             MoleculeCatalog.gas("helium", "Helium", "He", "[He]", ["He"], []),
             MoleculeCatalog.gas("neon", "Neon", "Ne", "[Ne]", ["Ne"], []),
@@ -6937,6 +6944,7 @@ export class MoleculeCatalog {
             linkTo: number,
             degree: number,
             tags: string[] = [],
+            addition: boolean = false,
         ): void => {
             const graph = MoleculeCatalog.tileRepeat(
                 unitHeavy,
@@ -6945,7 +6953,24 @@ export class MoleculeCatalog {
                 linkTo,
                 degree,
             );
-            const formula = MoleculeCatalog.formulaOf(graph.heavy, graph.bonds);
+            let explicitH: Array<readonly [number, number]> = [];
+            if (addition) {
+                const orderSums = new Array<number>(graph.heavy.length).fill(0);
+                for (const b of graph.bonds) {
+                    const w = b[2] === 4 ? 1.5 : b[2];
+                    orderSums[b[0]] += w;
+                    orderSums[b[1]] += w;
+                }
+                explicitH = graph.terminals.map((terminal) => {
+                    const implicit = ElementRegistry.implicitHydrogens(
+                        graph.heavy[terminal],
+                        orderSums[terminal],
+                        0,
+                    );
+                    return [terminal, Math.max(0, Math.round(implicit) - 1)] as const;
+                });
+            }
+            const formula = MoleculeCatalog.formulaOf(graph.heavy, graph.bonds, [], explicitH);
             specs.push(
                 MoleculeCatalog.make(
                     id,
@@ -6956,12 +6981,25 @@ export class MoleculeCatalog {
                     ["polymer", ...tags],
                     graph.heavy,
                     graph.bonds,
+                    false,
+                    "",
+                    [],
+                    explicitH,
                 ),
             );
         };
-        tile("polyethylene", "Polyethylene", "CCCCCCCCCC", ["C", "C"], [[0, 1, 1]], 1, 0, 10, [
-            "plastic",
-        ]);
+        tile(
+            "polyethylene",
+            "Polyethylene",
+            "CCCCCCCCCC",
+            ["C", "C"],
+            [[0, 1, 1]],
+            1,
+            0,
+            10,
+            ["plastic"],
+            true,
+        );
         tile(
             "polypropylene",
             "Polypropylene",
@@ -6975,6 +7013,7 @@ export class MoleculeCatalog {
             0,
             8,
             ["plastic"],
+            true,
         );
         tile(
             "polystyrene",
@@ -6995,6 +7034,7 @@ export class MoleculeCatalog {
             0,
             6,
             ["plastic", "aromatic"],
+            true,
         );
         tile(
             "pvc",
@@ -7009,6 +7049,7 @@ export class MoleculeCatalog {
             0,
             10,
             ["plastic"],
+            true,
         );
         tile(
             "ptfe",
@@ -7026,6 +7067,7 @@ export class MoleculeCatalog {
             0,
             8,
             ["plastic"],
+            true,
         );
         tile(
             "nylon-66",
@@ -7396,7 +7438,7 @@ export class MoleculeCatalog {
         linkFrom: number,
         linkTo: number,
         degree: number,
-    ): { heavy: string[]; bonds: CompactBond[] } {
+    ): { heavy: string[]; bonds: CompactBond[]; terminals: readonly [number, number] } {
         const heavy: string[] = [];
         const bonds: CompactBond[] = [];
         for (let k = 0; k < degree; k++) {
@@ -7409,7 +7451,11 @@ export class MoleculeCatalog {
                 bonds.push([offset - unitHeavy.length + linkFrom, offset + linkTo, 1]);
             }
         }
-        return { heavy, bonds };
+        return {
+            heavy,
+            bonds,
+            terminals: [linkTo, (degree - 1) * unitHeavy.length + linkFrom],
+        };
     }
 
     private static buildExplosives(): ICompactMoleculeSpec[] {
@@ -7712,6 +7758,7 @@ export class MoleculeCatalog {
                     [1, 2, 2],
                     [1, 3, 1],
                     [1, 4, 1],
+                    [0, 3, 1],
                 ],
                 true,
                 "",
@@ -7721,6 +7768,8 @@ export class MoleculeCatalog {
                     [3, -1],
                     [4, -1],
                 ],
+                [[0, 4]],
+                [[0, 3]],
             ),
         );
         specs.push(
@@ -7751,6 +7800,7 @@ export class MoleculeCatalog {
                     [1, 2, 2],
                     [1, 3, 1],
                     [1, 4, 1],
+                    [0, 3, 1],
                 ],
                 true,
                 "",
@@ -7760,6 +7810,8 @@ export class MoleculeCatalog {
                     [3, -1],
                     [4, -1],
                 ],
+                [],
+                [[0, 3]],
             ),
         );
         return specs;
@@ -8011,52 +8063,80 @@ export class MoleculeCatalog {
             }
             ringAtom.push(ring);
         }
-        const paired = new Set<number>();
-        for (let p = 0; p < pentagons; p++) {
-            if (paired.has(p)) {
-                continue;
-            }
-            let best = -1;
+        const single = new Array<number>(heavy.length).fill(0);
+        const bonded = new Set<string>();
+        for (const b of bonds) {
+            bonded.add(MoleculeCatalog.pairKey(b[0], b[1]));
+        }
+        const addBond = (a: number, b: number): void => {
+            bonds.push([a, b, 1]);
+            bonded.add(MoleculeCatalog.pairKey(a, b));
+            single[a]++;
+            single[b]++;
+        };
+        const used = new Set<number>([0]);
+        while (used.size < pentagons) {
             let bestD = Infinity;
-            for (let q = 0; q < pentagons; q++) {
-                if (q === p || paired.has(q)) {
+            let bestA = -1;
+            let bestB = -1;
+            let bestRing = -1;
+            for (let p = 0; p < pentagons; p++) {
+                if (!used.has(p)) {
                     continue;
                 }
-                const d = MoleculeCatalog.distSq3(centers[p], centers[q]);
-                if (d < bestD) {
-                    bestD = d;
-                    best = q;
-                }
-            }
-            /* v8 ignore next -- defensive: pentagon counts are always even */
-            if (best < 0) {
-                continue;
-            }
-            paired.add(p);
-            paired.add(best);
-            const usedB = new Set<number>();
-            for (const a of ringAtom[p]) {
-                let bk = -1;
-                let bkD = Infinity;
-                for (let k = 0; k < 5; k++) {
-                    if (usedB.has(k)) {
+                for (let q = 0; q < pentagons; q++) {
+                    if (used.has(q)) {
                         continue;
                     }
-                    const b = ringAtom[best][k];
-                    const d = MoleculeCatalog.distSq3(positions[a], positions[b]);
-                    if (d < bkD) {
-                        bkD = d;
-                        bk = k;
+                    for (const a of ringAtom[p]) {
+                        for (const b of ringAtom[q]) {
+                            if (single[a] >= 1 || single[b] >= 1) {
+                                continue;
+                            }
+                            const d = MoleculeCatalog.distSq3(positions[a], positions[b]);
+                            if (d < bestD) {
+                                bestD = d;
+                                bestA = a;
+                                bestB = b;
+                                bestRing = q;
+                            }
+                        }
                     }
                 }
-                /* v8 ignore next -- defensive: greedy matching over equal sets always succeeds */
-                if (bk >= 0) {
-                    usedB.add(bk);
-                    bonds.push([a, ringAtom[best][bk], 1]);
+            }
+            /* v8 ignore next -- defensive: a closest ring pair always exists while rings remain */
+            if (bestRing < 0) {
+                break;
+            }
+            addBond(bestA, bestB);
+            used.add(bestRing);
+        }
+        const targetSingles = (5 * pentagons) / 2;
+        let singleCount = single.reduce((sum, value) => sum + value, 0);
+        const candidates: Array<[number, number, number]> = [];
+        for (let a = 0; a < heavy.length; a++) {
+            for (let b = a + 1; b < heavy.length; b++) {
+                if (!bonded.has(MoleculeCatalog.pairKey(a, b))) {
+                    candidates.push([MoleculeCatalog.distSq3(positions[a], positions[b]), a, b]);
                 }
             }
         }
+        candidates.sort((x, y) => x[0] - y[0]);
+        for (const [, a, b] of candidates) {
+            if (singleCount >= targetSingles) {
+                break;
+            }
+            if (single[a] >= 1 || single[b] >= 1) {
+                continue;
+            }
+            addBond(a, b);
+            singleCount++;
+        }
         return { heavy, bonds };
+    }
+
+    private static pairKey(a: number, b: number): string {
+        return Math.min(a, b) + ":" + Math.max(a, b);
     }
 
     private static cross3(a: ReadonlyArray<number>, b: ReadonlyArray<number>): number[] {
@@ -8094,7 +8174,7 @@ export class MoleculeCatalog {
         for (let j = 0; j < rows; j++) {
             for (let i = 0; i < circumference; i++) {
                 bonds.push([idx[j][i], idx[j][(i + 1) % circumference], 4]);
-                if (j % 2 === 0 && j < rows - 1) {
+                if (j < rows - 1) {
                     const ni = (i + stagger) % circumference;
                     bonds.push([idx[j][i], idx[j + 1][ni], 1]);
                 }
@@ -8123,7 +8203,7 @@ export class MoleculeCatalog {
                 if (i < cols - 1) {
                     bonds.push([idx[j][i], idx[j][i + 1], 4]);
                 }
-                if (j % 2 === 0 && j < rows - 1) {
+                if (j < rows - 1) {
                     bonds.push([idx[j][i], idx[j + 1][i], 1]);
                 }
             }

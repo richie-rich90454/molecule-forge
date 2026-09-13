@@ -138,7 +138,8 @@ export class Renderer {
     ): void {
         this.time += frameDt;
         this.buildBuffers(instances, alpha, temperature);
-        this.atoms.update(this.atomBuffer, this.showOrbitals || this.showGraph);
+        this.atoms.setGraphMode(this.showGraph);
+        this.atoms.update(this.atomBuffer, this.showOrbitals);
         this.atoms.setHaloVisible(this.haloEnabled);
         if (this.showBonds) {
             this.bonds.update(this.bondBuffer, this.quality.getBondStride());

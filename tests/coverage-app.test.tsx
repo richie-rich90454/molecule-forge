@@ -269,7 +269,7 @@ describe("ThumbnailRenderer coverage", () => {
 describe("AppViewModel coverage", () => {
     it("refuses to spawn when the chamber is full", () => {
         const { vm, world } = makeVm();
-        vi.spyOn(world, "countAlive").mockReturnValue(2500);
+        vi.spyOn(world, "getInstanceCount").mockReturnValue(2500);
         expect(vm.spawnSelected(0, 0, 0)).toBe(false);
         expect(vm.getLog().some((entry) => entry.text.includes("chamber is full"))).toBe(true);
     });
@@ -338,7 +338,7 @@ describe("AppViewModel coverage", () => {
             makePreset({ spawns: [{ moleculeId: "caffeine", count: 3 }] }),
         ];
         vi.spyOn(second.world, "canAccommodate").mockReturnValue(true);
-        vi.spyOn(second.world, "countAlive").mockReturnValue(2500);
+        vi.spyOn(second.world, "getInstanceCount").mockReturnValue(2500);
         second.vm.applyPreset("synthetic");
         expect(second.vm.getPresetId()).toBe("synthetic");
     });

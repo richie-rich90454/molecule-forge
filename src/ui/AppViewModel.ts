@@ -3,6 +3,8 @@ import type { IMoleculeRecord, IMoleculeRegistry, MoleculeCategory } from "../ch
 import { PresetCatalog, type IPreset } from "../presets/PresetCatalog";
 import { SnapshotCodec } from "../state/SnapshotCodec";
 import type { IReactionEvent, IReactionSink } from "../sim/ReactionEngine";
+import { ReactionCatalog, type IReactionRule } from "../sim/ReactionCatalog";
+import { ChamberAnalysis, LabRecorder, type IMeasureData } from "../sim/LabRecorder";
 import { SeededRandom } from "../sim/SeededRandom";
 import type { World } from "../sim/World";
 import type { SoundEngine } from "../audio/SoundEngine";
@@ -25,6 +27,7 @@ export interface ISelectedAtom {
 }
 
 export type CanvasTool = "orbit" | "place" | "erase";
+export type PanelMode = "library" | "analyze";
 
 const MAX_INSTANCES = 2500;
 
@@ -99,6 +102,16 @@ export class AppViewModel implements IReactionSink {
     public readonly getLogOpen: () => boolean;
     public readonly setLogOpen: (value: boolean) => void;
     public readonly getFilteredRecords: () => ReadonlyArray<IMoleculeRecord>;
+    public readonly getPanel: () => PanelMode;
+    public readonly setPanel: (value: PanelMode) => void;
+    public readonly getSelectedRuleId: () => string;
+    public readonly setSelectedRuleId: (value: string) => void;
+    public readonly getLabRevision: () => number;
+    public readonly setLabRevision: (value: number) => void;
+    public readonly getMeasureData: () => IMeasureData;
+
+    private readonly recorder: LabRecorder;
+    private readonly rules: ReadonlyArray<IReactionRule>;
 
     public constructor(
         registry: IMoleculeRegistry,
@@ -111,6 +124,8 @@ export class AppViewModel implements IReactionSink {
         this.sound = sound;
         this.effects = effects;
         this.presets = PresetCatalog.buildPresets();
+        this.rules = ReactionCatalog.buildRules();
+        this.recorder = new LabRecorder();
         this.logCounter = 0;
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
         this.getCategory = getCategory;
@@ -205,8 +220,31 @@ export class AppViewModel implements IReactionSink {
         const [getLogOpen, setLogOpen] = createSignal<boolean>(false);
         this.getLogOpen = getLogOpen;
         this.setLogOpen = setLogOpen;
+        const [getPanel, setPanel] = createSignal<PanelMode>("library");
+        this.getPanel = getPanel;
+        this.setPanel = setPanel;
+        const [getSelectedRuleId, setSelectedRuleId] = createSignal<string>(this.rules[0].id);
+        this.getSelectedRuleId = getSelectedRuleId;
+        this.setSelectedRuleId = setSelectedRuleId;
+        const [getLabRevision, setLabRevision] = createSignal<number>(0);
+        this.getLabRevision = getLabRevision;
+        this.setLabRevision = setLabRevision;
         this.getFilteredRecords = createMemo(() => {
             return registry.getRecords(getCategory());
+        });
+        this.getMeasureData = createMemo(() => {
+            this.getLabRevision();
+            return {
+                composition: ChamberAnalysis.composition(this.world),
+                atoms: ChamberAnalysis.atomBalance(this.world),
+                netCharge: ChamberAnalysis.netCharge(this.world),
+                samples: this.recorder.getSamples(),
+                rates: this.recorder.rateAt(this.world.time),
+                rules: this.rules,
+                selectedRuleId: this.getSelectedRuleId(),
+                potentials: ChamberAnalysis.cellPotentials(this.world),
+                energy: this.recorder.getEnergy(),
+            };
         });
     }
 
@@ -228,6 +266,8 @@ export class AppViewModel implements IReactionSink {
 
     public publish(event: IReactionEvent): void {
         this.addLog(event.message, true);
+        this.recorder.noteEvent(event, this.world.time);
+        this.setLabRevision(this.getLabRevision() + 1);
         this.effects.flash(
             event.x,
             event.y,
@@ -476,6 +516,8 @@ export class AppViewModel implements IReactionSink {
 
     public clearWorld(): void {
         this.world.clear();
+        this.recorder.reset();
+        this.setLabRevision(this.getLabRevision() + 1);
         this.setCount(0);
         this.addLog("Chamber cleared.", false);
     }
@@ -486,6 +528,10 @@ export class AppViewModel implements IReactionSink {
 
     public toggleLog(): void {
         this.setLogOpen(!this.getLogOpen());
+    }
+
+    public selectPanel(panel: PanelMode): void {
+        this.setPanel(panel);
     }
 
     public rerollSeed(): void {
@@ -499,6 +545,8 @@ export class AppViewModel implements IReactionSink {
             return;
         }
         this.world.clear();
+        this.recorder.reset();
+        this.setLabRevision(this.getLabRevision() + 1);
         this.setPresetId(id);
         this.setSeed(preset.seed);
         if (preset.conditions.temperature !== undefined) {
@@ -663,5 +711,8 @@ export class AppViewModel implements IReactionSink {
         this.setFps(Math.round(fps));
         this.setQuality(quality);
         this.setCount(this.world.countAlive());
+        if (this.recorder.sample(this.world, this.world.time)) {
+            this.setLabRevision(this.getLabRevision() + 1);
+        }
     }
 }

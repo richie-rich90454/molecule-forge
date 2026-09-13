@@ -12,6 +12,8 @@ interface IParserState {
     pos: number;
 }
 
+type Direction = "/" | "\\";
+
 export class SmilesParser {
     private readonly states: IParserState[];
 
@@ -41,8 +43,21 @@ export class SmilesParser {
         >();
         let current = -1;
         let pendingOrder = 1;
-        let pendingStereo: string | null = null;
+        let pendingMarker: Direction | null = null;
+        let lastSingleMarker: Direction | null = null;
+        let awaitingDoubleIndex = -1;
+        let awaitingDoubleLeft: Direction | null = null;
         const branchStack: number[] = [];
+
+        const stereoLabel = (marker: Direction): string => (marker === "/" ? "E" : "Z");
+        const combineStereo = (left: Direction, right: Direction): string =>
+            left === right ? "E" : "Z";
+        const resetComponent = (): void => {
+            current = -1;
+            lastSingleMarker = null;
+            awaitingDoubleIndex = -1;
+            awaitingDoubleLeft = null;
+        };
 
         const closeRing = (key: string): void => {
             const existing = ringBonds.get(key);
@@ -51,12 +66,13 @@ export class SmilesParser {
                     atom: current,
                     order: pendingOrder,
                     aromatic: aromaticFlags[current] === true,
-                    stereo: pendingStereo,
+                    stereo: pendingMarker === null ? null : stereoLabel(pendingMarker),
                 });
             } else {
                 const bothAromatic = existing.aromatic && aromaticFlags[current] === true;
                 const order = bothAromatic ? 4 : Math.max(existing.order, pendingOrder);
-                const stereo = existing.stereo ?? pendingStereo;
+                const stereo =
+                    existing.stereo ?? (pendingMarker === null ? null : stereoLabel(pendingMarker));
                 if (stereo === null) {
                     bonds.push([existing.atom, current, order]);
                 } else {
@@ -65,7 +81,7 @@ export class SmilesParser {
                 ringBonds.delete(key);
             }
             pendingOrder = 1;
-            pendingStereo = null;
+            pendingMarker = null;
         };
 
         const addAtom = (
@@ -86,14 +102,37 @@ export class SmilesParser {
             if (current >= 0) {
                 const bothAromatic = aromatic && aromaticFlags[current] === true;
                 const order = bothAromatic ? 4 : pendingOrder;
-                if (pendingStereo === null) {
+                const marker = pendingMarker;
+                if (marker === null) {
                     bonds.push([current, index, order]);
+                    if (order === 2) {
+                        awaitingDoubleIndex = bonds.length - 1;
+                        awaitingDoubleLeft = lastSingleMarker;
+                    } else if (order === 1) {
+                        lastSingleMarker = null;
+                        awaitingDoubleIndex = -1;
+                        awaitingDoubleLeft = null;
+                    }
+                } else if (order === 2) {
+                    bonds.push([current, index, order, stereoLabel(marker)]);
                 } else {
-                    bonds.push([current, index, order, pendingStereo]);
+                    if (awaitingDoubleIndex >= 0 && awaitingDoubleLeft !== null) {
+                        const db = bonds[awaitingDoubleIndex];
+                        bonds[awaitingDoubleIndex] = [
+                            db[0],
+                            db[1],
+                            2,
+                            combineStereo(awaitingDoubleLeft, marker),
+                        ];
+                        awaitingDoubleIndex = -1;
+                        awaitingDoubleLeft = null;
+                    }
+                    bonds.push([current, index, order, stereoLabel(marker)]);
+                    lastSingleMarker = marker;
                 }
             }
             pendingOrder = 1;
-            pendingStereo = null;
+            pendingMarker = null;
             current = index;
             return index;
         };
@@ -110,25 +149,23 @@ export class SmilesParser {
             } else if (ch === "[") {
                 const parsed = this.parseBracket(state);
                 addAtom(parsed.el, parsed.aromatic, parsed.charge, parsed.hCount);
-            } else if (
-                ch === "-" ||
-                ch === "=" ||
-                ch === "#" ||
-                ch === ":" ||
-                ch === "/" ||
-                ch === "\\"
-            ) {
-                if (ch === "=") {
-                    pendingOrder = 2;
-                } else if (ch === "#") {
-                    pendingOrder = 3;
-                } else if (ch === ":") {
-                    pendingOrder = 4;
-                } else if (ch === "/") {
-                    pendingStereo = "E";
-                } else if (ch === "\\") {
-                    pendingStereo = "Z";
-                }
+            } else if (ch === "-") {
+                pendingOrder = 1;
+                state.pos++;
+            } else if (ch === "=") {
+                pendingOrder = 2;
+                state.pos++;
+            } else if (ch === "#") {
+                pendingOrder = 3;
+                state.pos++;
+            } else if (ch === ":") {
+                pendingOrder = 4;
+                state.pos++;
+            } else if (ch === "/") {
+                pendingMarker = "/";
+                state.pos++;
+            } else if (ch === "\\") {
+                pendingMarker = "\\";
                 state.pos++;
             } else if (ch >= "0" && ch <= "9") {
                 closeRing(ch);
@@ -137,10 +174,8 @@ export class SmilesParser {
                 const key = state.text.substring(state.pos + 1, state.pos + 3);
                 state.pos += 3;
                 closeRing(key);
-            } else if (ch === "." || ch === "+" || ch === "-") {
-                if (ch === ".") {
-                    current = -1;
-                }
+            } else if (ch === "." || ch === "+") {
+                resetComponent();
                 state.pos++;
             } else {
                 const two = state.text.substring(state.pos, state.pos + 2);
@@ -179,11 +214,7 @@ export class SmilesParser {
                 }
             }
         }
-        void pendingStereo;
-        const fixedBonds: CompactBond[] = bonds.map((b) =>
-            b.length > 3 ? [b[0], b[1], b[2], b[3] as string] : [b[0], b[1], b[2]],
-        );
-        return { heavy, bonds: fixedBonds, charges, explicitH };
+        return { heavy, bonds, charges, explicitH };
     }
 
     private parseBracket(state: IParserState): {
@@ -196,22 +227,22 @@ export class SmilesParser {
         const inner = end < 0 ? "" : state.text.substring(state.pos + 1, end);
         state.pos = end < 0 ? state.text.length : end + 1;
         let charge = 0;
-        const plusMatch = inner.match(/(\+{1,3}|\+\d+|-\d*|-{1,3})/);
-        if (plusMatch !== null) {
-            const token = plusMatch[1];
+        const chargeMatch = inner.match(/(\+\d+|\+{1,3}|-\d+|-{1,3})/);
+        if (chargeMatch !== null) {
+            const token = chargeMatch[1];
             if (token[0] === "+") {
                 charge =
                     token.length === 1
                         ? 1
-                        : token.length === 2 && token[1] === "+"
-                          ? 2
+                        : token[1] === "+"
+                          ? token.length
                           : parseInt(token.substring(1), 10) || 1;
             } else {
                 charge =
-                    token === "-"
+                    token.length === 1
                         ? -1
-                        : token === "--"
-                          ? -2
+                        : token[1] === "-"
+                          ? -token.length
                           : -(parseInt(token.substring(1), 10) || 1);
             }
         }
@@ -228,8 +259,8 @@ export class SmilesParser {
             aromatic = raw === raw.toLowerCase();
             el = aromatic ? raw.toUpperCase() : raw;
         }
-        if (el === "H" || el === "*") {
-            el = "C";
+        if (el === "H") {
+            hCount = null;
         }
         return { el, aromatic, charge, hCount };
     }

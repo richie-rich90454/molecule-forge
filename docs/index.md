@@ -15,7 +15,7 @@ features:
     - title: Real molecules only
       details: 507 records across 17 categories with true graphs, bond orders, formal charges, stereochemistry, and aromaticity. Every record passes valence, distance, formula, and mass validation before it ships.
     - title: Chemistry that actually bonds
-      details: A valence and electronegativity model with common oxidation states for all 94 elements plus a table of polyatomic ions. Place cerium next to bromine and CeBr3 forms, add oxygen and hydrogen and NaOH forms, add sulfur and oxygen and Na2SO4 forms. Atoms are conserved, and short ratios get a plain-English hint instead of silence.
+      details: A valence and electronegativity model with common oxidation states for all 94 elements, a polyatomic ion set that generates oxyanions on demand, computed reaction enthalpies from bond energies and Born-Haber cycles, standard reduction potentials for metal displacement, and a Debye-Huckel solvent activity. Place cerium next to bromine and CeBr3 forms, add oxygen and hydrogen and NaOH forms, add sulfur and oxygen and Na2SO4 forms.
     - title: Physics at 240 Hz
       details: Rigid bodies with Lennard-Jones, screened Coulomb, and hydrogen-bond forces on a spatial hash grid. Cold scenes crystallize, hot scenes vaporize, nothing is scripted.
     - title: Scratch the surface, then ignite it
@@ -34,7 +34,7 @@ features:
 bun install
 bun run dev       # develop with hot reload
 bun run build     # produce dist/index.html
-bun run test      # run the Vitest suite (234 tests, 100 percent coverage)
+bun run test      # run the Vitest suite (264 tests, 100 percent coverage)
 bun run validate  # validate all 507 molecules
 ```
 

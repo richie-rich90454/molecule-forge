@@ -11,6 +11,7 @@ import { HydrogenBondCalculator } from "./sim/HydrogenBondCalculator";
 import { LennardJonesCalculator } from "./sim/LennardJonesCalculator";
 import { ReactionCatalog } from "./sim/ReactionCatalog";
 import { ReactionEngine } from "./sim/ReactionEngine";
+import { RedoxEngine } from "./sim/RedoxEngine";
 import { SeededRandom } from "./sim/SeededRandom";
 import { SynthesisEngine } from "./sim/SynthesisEngine";
 import { World } from "./sim/World";
@@ -26,6 +27,7 @@ export class Application implements IEffectSink {
     private readonly engine: PhysicsEngine;
     private readonly reactions: ReactionEngine;
     private readonly synthesis: SynthesisEngine;
+    private readonly redox: RedoxEngine;
     private readonly sound: SoundEngine;
     private readonly vm: AppViewModel;
     private readonly simRng: SeededRandom;
@@ -64,7 +66,9 @@ export class Application implements IEffectSink {
         );
         this.world = new World(this.engine, 1101);
         this.reactions = new ReactionEngine(ReactionCatalog.buildRules(), this.registry);
-        this.synthesis = new SynthesisEngine(this.registry, new CompoundSynthesizer(factory));
+        const synthesizer = new CompoundSynthesizer(factory);
+        this.synthesis = new SynthesisEngine(this.registry, synthesizer);
+        this.redox = new RedoxEngine(this.registry, synthesizer);
         this.sound = new SoundEngine();
         this.vm = new AppViewModel(this.registry, this.world, this.sound, this);
         this.vm.initialize();
@@ -335,6 +339,7 @@ export class Application implements IEffectSink {
                     if (this.reactionTick % 12 === 0) {
                         this.reactions.update(this.world, this.simRng, this.vm);
                         this.synthesis.update(this.world, this.simRng, this.vm);
+                        this.redox.update(this.world, this.simRng, this.vm);
                     }
                     budgeted--;
                     if (this.world.countAlive() === 0) {

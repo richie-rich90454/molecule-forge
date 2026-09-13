@@ -50,6 +50,7 @@ export class OxidationEngine {
     private readonly grid: SpatialHashGrid<MoleculeInstance>;
     private readonly nearby: MoleculeInstance[];
     private readonly reagents: IReagent[];
+    private readonly oxygenList: MoleculeInstance[];
 
     public constructor(registry: IMoleculeRegistry, factory: MoleculeFactory, radius: number = 7) {
         this.registry = registry;
@@ -60,6 +61,7 @@ export class OxidationEngine {
         this.grid = new SpatialHashGrid<MoleculeInstance>(radius);
         this.nearby = [];
         this.reagents = [];
+        this.oxygenList = [];
     }
 
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
@@ -146,52 +148,94 @@ export class OxidationEngine {
         if (temperature < COMBUSTION_IGNITION && world.params.spark <= 0.05) {
             return;
         }
-        let hasOxygen = false;
+        const oxygen = this.oxygenList;
+        oxygen.length = 0;
         for (const inst of instances) {
             if (OxidationEngine.isDioxygen(inst.record)) {
-                hasOxygen = true;
-                break;
+                oxygen.push(inst);
             }
         }
-        if (!hasOxygen) {
+        if (oxygen.length === 0) {
             return;
         }
+        const radiusSq = this.radius * this.radius;
         for (const fuel of instances) {
             const plan = this.planOf(fuel.record);
             if (plan === null) {
                 continue;
             }
-            const nearby = this.nearbyOf(fuel);
-            nearby.sort(OxidationEngine.byId);
-            const oxygen = nearby.filter((inst) => OxidationEngine.isDioxygen(inst.record));
-            if (oxygen.length < plan.oxygen) {
+            if (!OxidationEngine.hasIgnitionContact(fuel, oxygen, radiusSq)) {
                 continue;
             }
-            const same = nearby.filter((inst) => inst.record.id === fuel.record.id);
-            if (same.length < plan.fuelUnits) {
-                continue;
+            let fuelAvailable = 0;
+            for (const inst of instances) {
+                if (inst.record.id === fuel.record.id) {
+                    fuelAvailable++;
+                }
             }
-            this.burn(
-                world,
-                fuel,
-                plan,
-                oxygen.slice(0, plan.oxygen),
-                same.slice(0, plan.fuelUnits),
-                rng,
-                sink,
+            const extent = Math.floor(
+                Math.min(fuelAvailable / plan.fuelUnits, oxygen.length / plan.oxygen),
             );
+            if (extent < 1) {
+                continue;
+            }
+            const fuels = this.nearestOf(instances, fuel, fuel.record.id, extent * plan.fuelUnits);
+            const oxidizers = this.nearestOf(oxygen, fuel, null, extent * plan.oxygen);
+            this.burn(world, fuel, plan, extent, oxidizers, fuels, rng, sink);
             return;
         }
+    }
+
+    private static hasIgnitionContact(
+        fuel: MoleculeInstance,
+        oxygen: ReadonlyArray<MoleculeInstance>,
+        radiusSq: number,
+    ): boolean {
+        for (const oxy of oxygen) {
+            if (OxidationEngine.distanceSq(fuel, oxy) <= radiusSq) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private nearestOf(
+        sources: ReadonlyArray<MoleculeInstance>,
+        center: MoleculeInstance,
+        onlyId: string | null,
+        count: number,
+    ): MoleculeInstance[] {
+        const eligible: MoleculeInstance[] = [];
+        for (const inst of sources) {
+            if (onlyId !== null && inst.record.id !== onlyId) {
+                continue;
+            }
+            eligible.push(inst);
+        }
+        eligible.sort(
+            (a, b) =>
+                OxidationEngine.distanceSq(a, center) - OxidationEngine.distanceSq(b, center) ||
+                a.id - b.id,
+        );
+        return eligible.slice(0, count);
     }
 
     private static byId(a: MoleculeInstance, b: MoleculeInstance): number {
         return a.id - b.id;
     }
 
+    private static distanceSq(a: MoleculeInstance, b: MoleculeInstance): number {
+        const dx = a.px - b.px;
+        const dy = a.py - b.py;
+        const dz = a.pz - b.pz;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     private burn(
         world: World,
         fuel: MoleculeInstance,
         plan: ICombustionPlan,
+        extent: number,
         oxygen: ReadonlyArray<MoleculeInstance>,
         same: ReadonlyArray<MoleculeInstance>,
         rng: SeededRandom,
@@ -209,47 +253,49 @@ export class OxidationEngine {
         ) {
             return;
         }
-        if (!world.canAccommodate(plan.productAtoms)) {
+        if (!world.canAccommodate(plan.productAtoms * extent)) {
             return;
         }
+        const fuelUnits = plan.fuelUnits * extent;
+        const oxygenUnits = plan.oxygen * extent;
         const consumed: MoleculeInstance[] = [];
-        for (let i = 0; i < plan.fuelUnits; i++) {
+        for (let i = 0; i < fuelUnits; i++) {
             consumed.push(same[i]);
         }
-        for (let i = 0; i < plan.oxygen; i++) {
+        for (let i = 0; i < oxygenUnits; i++) {
             consumed.push(oxygen[i]);
         }
         const center = OxidationEngine.centroid(consumed);
         for (const inst of consumed) {
             world.remove(inst.id);
         }
-        OxidationEngine.emitUnits(world, carbonDioxide, plan.carbonDioxide, center, rng);
-        OxidationEngine.emitUnits(world, water, plan.water, center, rng);
-        OxidationEngine.emitUnits(world, sulfurDioxide, plan.sulfurDioxide, center, rng);
-        OxidationEngine.emitUnits(world, nitrogen, plan.nitrogen, center, rng);
+        OxidationEngine.emitUnits(world, carbonDioxide, plan.carbonDioxide * extent, center, rng);
+        OxidationEngine.emitUnits(world, water, plan.water * extent, center, rng);
+        OxidationEngine.emitUnits(world, sulfurDioxide, plan.sulfurDioxide * extent, center, rng);
+        OxidationEngine.emitUnits(world, nitrogen, plan.nitrogen * extent, center, rng);
         const products: string[] = [];
         if (plan.carbonDioxide > 0) {
-            products.push(plan.carbonDioxide + " CO2");
+            products.push(plan.carbonDioxide * extent + " CO2");
         }
         if (plan.water > 0) {
-            products.push(plan.water + " H2O");
+            products.push(plan.water * extent + " H2O");
         }
         if (plan.sulfurDioxide > 0) {
-            products.push(plan.sulfurDioxide + " SO2");
+            products.push(plan.sulfurDioxide * extent + " SO2");
         }
         if (plan.nitrogen > 0) {
-            products.push(plan.nitrogen + " N2");
+            products.push(plan.nitrogen * extent + " N2");
         }
         sink.publish({
             ruleId: "combustion-" + fuel.record.id,
             message:
                 fuel.record.name +
                 " burns: " +
-                plan.fuelUnits +
+                fuelUnits +
                 " " +
                 fuel.record.formula +
                 " + " +
-                plan.oxygen +
+                oxygenUnits +
                 " O2 -> " +
                 products.join(" + ") +
                 ".",

@@ -147,6 +147,9 @@ export class ReactionEngine {
                 continue;
             }
             for (let i = 0; i < product.count; i++) {
+                if (!world.canAccommodate(record.atoms.length)) {
+                    break;
+                }
                 const jx = (rng.next() - 0.5) * 4;
                 const jy = (rng.next() - 0.5) * 4;
                 const jz = (rng.next() - 0.5) * 4;

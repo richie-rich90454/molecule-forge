@@ -31,9 +31,17 @@ export interface IPairInput {
     readonly params: ISimParams;
 }
 
+export interface IPairBody {
+    readonly radius: number;
+    readonly charge: number;
+    readonly donors: number;
+    readonly acceptors: number;
+}
+
 export interface IForceCalculator {
     getName(): string;
     computeMagnitude(input: IPairInput): number;
+    getRange?(a: IPairBody, b: IPairBody): number;
 }
 
 export type MutablePairInput = {

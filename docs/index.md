@@ -34,7 +34,7 @@ features:
 bun install
 bun run dev       # develop with hot reload
 bun run build     # produce dist/index.html
-bun run test      # run the Vitest suite (264 tests, 100 percent coverage)
+bun run test      # run the Vitest suite (274 tests, 100 percent coverage)
 bun run validate  # validate all 507 molecules
 ```
 

@@ -118,26 +118,50 @@ export class SynthesisEngine {
         }
         const prediction = this.synthesizer.predict({ totals, monatomic });
         if (prediction.product !== null) {
+            if (!this.conditionsAllow(prediction.product, world)) {
+                this.emitHint(prediction.product.name + " needs more heat to form.", cluster, sink);
+                return;
+            }
             this.execute(world, cluster, prediction.product, rng, sink);
             return;
         }
-        if (prediction.hint !== null && prediction.hint !== this.lastHint) {
-            this.lastHint = prediction.hint;
-            const center = this.centroid(cluster);
-            sink.publish({
-                ruleId: "synthesis-hint",
-                message: prediction.hint,
-                x: center.x,
-                y: center.y,
-                z: center.z,
-                flash: FLASH,
-                particles: "puff",
-            });
+        if (prediction.hint !== null) {
+            this.emitHint(prediction.hint, cluster, sink);
             return;
         }
-        if (prediction.hint === null) {
-            this.lastHint = null;
+        this.lastHint = null;
+    }
+
+    private conditionsAllow(product: ISynthesisProduct, world: World): boolean {
+        const temperature = world.params.temperature;
+        if (temperature <= 5) {
+            return false;
         }
+        if (product.kind === "covalent" && temperature < 250 && world.params.spark <= 0.05) {
+            return false;
+        }
+        return true;
+    }
+
+    private emitHint(
+        text: string,
+        cluster: ReadonlyArray<MoleculeInstance>,
+        sink: IReactionSink,
+    ): void {
+        if (text === this.lastHint) {
+            return;
+        }
+        this.lastHint = text;
+        const center = this.centroid(cluster);
+        sink.publish({
+            ruleId: "synthesis-hint",
+            message: text,
+            x: center.x,
+            y: center.y,
+            z: center.z,
+            flash: FLASH,
+            particles: "puff",
+        });
     }
 
     private execute(
@@ -209,11 +233,21 @@ export class SynthesisEngine {
                 world.spawn(atomRecord, center.x, center.y, center.z, 2);
             }
         }
+        const spacing = product.units > 1 ? 3 : 0;
         for (let i = 0; i < product.units; i++) {
-            const jx = (rng.next() - 0.5) * 2;
-            const jy = (rng.next() - 0.5) * 2;
-            const jz = (rng.next() - 0.5) * 2;
-            world.spawn(productSource.record, center.x + jx, center.y + jy, center.z + jz, 2);
+            const gx = spacing * ((i % 3) - 1);
+            const gy = spacing * ((Math.floor(i / 3) % 3) - 1);
+            const gz = spacing * (Math.floor(i / 9) - 1);
+            const jx = (rng.next() - 0.5) * 0.5;
+            const jy = (rng.next() - 0.5) * 0.5;
+            const jz = (rng.next() - 0.5) * 0.5;
+            world.spawn(
+                productSource.record,
+                center.x + gx + jx,
+                center.y + gy + jy,
+                center.z + gz + jz,
+                2,
+            );
         }
         sink.publish({
             ruleId: "synthesis-" + product.formula,

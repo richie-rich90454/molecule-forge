@@ -81,3 +81,35 @@ impl ForceCalculator for HydrogenBondCalculator {
         0.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{CoulombCalculator, ForceCalculator, HydrogenBondCalculator, LennardJonesCalculator};
+
+    #[test]
+    fn lennard_jones_repels_up_close() {
+        let calc = LennardJonesCalculator::new(2.2);
+        assert!(calc.magnitude(1.0, 2.0, 0.0, 0.0) > 0.0);
+    }
+
+    #[test]
+    fn lennard_jones_attracts_at_range() {
+        let calc = LennardJonesCalculator::new(2.2);
+        assert!(calc.magnitude(3.0, 2.0, 0.0, 0.0) < 0.0);
+    }
+
+    #[test]
+    fn coulomb_repels_like_charges() {
+        let calc = CoulombCalculator::new(20.0);
+        assert!(calc.magnitude(5.0, 2.0, 1.0, 1.0) > 0.0);
+        assert!(calc.magnitude(5.0, 2.0, 1.0, -1.0) < 0.0);
+    }
+
+    #[test]
+    fn hydrogen_bond_attracts_donor_acceptor_pairs() {
+        let calc = HydrogenBondCalculator::new(3.0, 3.5);
+        assert!(calc.pair_magnitude(2.8, 1, 1) < 0.0);
+        assert_eq!(calc.pair_magnitude(9.0, 1, 1), 0.0);
+        assert_eq!(calc.pair_magnitude(2.8, 0, 1), 0.0);
+    }
+}

@@ -113,24 +113,6 @@ export class ReactionCatalog {
                 message: "Benzene burns with a smoky orange flame.",
             },
             {
-                id: "combustion-generic",
-                reactants: [
-                    { category: "alkanes", tag: null, moleculeId: "", count: 1 },
-                    { category: null, tag: null, moleculeId: "oxygen", count: 2 },
-                ],
-                products: [
-                    { moleculeId: "carbon-dioxide", count: 2 },
-                    { moleculeId: "water", count: 3 },
-                ],
-                conditions: hot(700),
-                activationEnergy: 48,
-                deltaH: -1200,
-                visual: { flash: "#ff8040", particles: "spark" },
-                rateLaw: "k * [fuel] * [O2]^2",
-                reference: "NIST Kinetics Database",
-                message: "A hydrocarbon burns in oxygen.",
-            },
-            {
                 id: "polymerization-styrene",
                 reactants: [{ category: null, tag: null, moleculeId: "styrene", count: 3 }],
                 products: [{ moleculeId: "polystyrene", count: 1 }],

@@ -1,5 +1,6 @@
 import type {
     IForceCalculator,
+    IPairBody,
     IPairInput,
     ISimParams,
     MutablePairInput,
@@ -14,6 +15,12 @@ export class PhysicsEngine {
     private readonly grid: SpatialHashGrid<MoleculeInstance>;
     private readonly pairInput: MutablePairInput;
     private readonly scratch: MoleculeInstance[];
+    private readonly maxPartner: {
+        radius: number;
+        charge: number;
+        donors: number;
+        acceptors: number;
+    };
 
     public constructor(calculators: ReadonlyArray<IForceCalculator>, params: ISimParams) {
         this.calculators = calculators;
@@ -37,12 +44,16 @@ export class PhysicsEngine {
             params,
         };
         this.scratch = [];
+        this.maxPartner = { radius: 0, charge: 1, donors: 0, acceptors: 0 };
     }
 
     public step(world: World, dt: number, rng: SeededRandom): void {
         const instances = world.getInstanceList();
         const params = world.params;
         (this.pairInput as MutablePairInput).params = params;
+        let maxRadius = 0;
+        let hasDonor = false;
+        let hasAcceptor = false;
         for (const inst of instances) {
             if (!inst.alive) {
                 continue;
@@ -56,6 +67,15 @@ export class PhysicsEngine {
             inst.ax = 0;
             inst.ay = 0;
             inst.az = 0;
+            if (inst.radius > maxRadius) {
+                maxRadius = inst.radius;
+            }
+            if (inst.donors > 0) {
+                hasDonor = true;
+            }
+            if (inst.acceptors > 0) {
+                hasAcceptor = true;
+            }
         }
         this.grid.clear();
         for (const inst of instances) {
@@ -64,11 +84,21 @@ export class PhysicsEngine {
             }
         }
         const cutoff = 10;
+        const partner = this.maxPartner;
+        partner.radius = maxRadius;
+        partner.donors = hasDonor ? 1 : 0;
+        partner.acceptors = hasAcceptor ? 1 : 0;
         for (const a of instances) {
             if (!a.alive) {
                 continue;
             }
-            this.grid.queryRadius(a.px, a.py, a.pz, cutoff, this.scratch);
+            this.grid.queryRadius(
+                a.px,
+                a.py,
+                a.pz,
+                this.queryRange(a, partner, cutoff),
+                this.scratch,
+            );
             for (const b of this.scratch) {
                 if (b.id <= a.id || !b.alive) {
                     continue;
@@ -203,6 +233,20 @@ export class PhysicsEngine {
             inst.avz *= 1 - Math.min(0.9, dt * 2);
             PhysicsEngine.integrateQuaternion(inst, dt);
         }
+    }
+
+    private queryRange(a: MoleculeInstance, partner: IPairBody, cutoff: number): number {
+        let range = 0;
+        for (const calc of this.calculators) {
+            if (calc.getRange === undefined) {
+                return cutoff;
+            }
+            const limit = calc.getRange(a, partner);
+            if (limit > range) {
+                range = limit;
+            }
+        }
+        return range > cutoff ? cutoff : range;
     }
 
     public static integrateQuaternion(

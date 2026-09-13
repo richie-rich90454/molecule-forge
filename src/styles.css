@@ -15,7 +15,13 @@
     --warn: #ff6060;
     --warn-dim: #5a2b2e;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --sans:
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 * {
@@ -54,9 +60,8 @@ body {
     padding: 8px 14px;
     background: var(--panel);
     border-bottom: 1px solid var(--line);
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 12px;
+    letter-spacing: 0.02em;
+    font-size: 13px;
     z-index: 5;
 }
 
@@ -76,9 +81,8 @@ body {
     color: var(--text);
     border-radius: 8px;
     padding: 6px 12px;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.02em;
     cursor: pointer;
     font-family: var(--sans);
 }
@@ -142,9 +146,8 @@ body {
     border: 1px solid transparent;
     color: var(--text-dim);
     border-radius: 6px;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.02em;
     padding: 4px 8px;
     cursor: pointer;
     font-family: var(--sans);
@@ -195,6 +198,11 @@ body {
     background: #221418;
 }
 
+.mf-card.mf-selected {
+    border-color: var(--accent);
+    background: var(--active-fill);
+}
+
 .mf-card canvas {
     width: 100%;
     height: 74px;
@@ -219,8 +227,8 @@ body {
 
 .mf-card-badge {
     display: inline-block;
-    font-size: 9px;
-    letter-spacing: 0.1em;
+    font-size: 10px;
+    letter-spacing: 0.04em;
     color: var(--warn);
     border: 1px solid var(--warn-dim);
     border-radius: 4px;
@@ -297,9 +305,8 @@ body {
     border: 1px solid transparent;
     color: var(--text-dim);
     border-radius: 7px;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.02em;
     padding: 5px 10px;
     max-width: 130px;
     white-space: nowrap;
@@ -336,9 +343,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.02em;
     color: var(--text-dim);
 }
 
@@ -372,9 +378,8 @@ body {
     flex-wrap: wrap;
     gap: 4px 12px;
     margin-top: 8px;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.02em;
     color: var(--text-dim);
 }
 
@@ -411,9 +416,8 @@ body {
 }
 
 .mf-log-title {
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.04em;
     color: var(--text-dim);
     white-space: nowrap;
 }
@@ -489,8 +493,8 @@ body {
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 6px 10px;
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    font-size: 12px;
+    letter-spacing: 0.02em;
     font-family: var(--sans);
     max-width: 240px;
 }

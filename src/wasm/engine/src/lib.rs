@@ -3,7 +3,9 @@ pub mod reaction_rule;
 pub mod spatial_hash;
 pub mod world;
 
-pub use force_calculator::{CoulombCalculator, ForceCalculator, HydrogenBondCalculator, LennardJonesCalculator};
+pub use force_calculator::{
+    CoulombCalculator, ForceCalculator, HydrogenBondCalculator, LennardJonesCalculator,
+};
 pub use reaction_rule::{ReactionCondition, ReactionRule};
 pub use spatial_hash::SpatialHashGrid;
 pub use world::{MoleculeBody, World};
@@ -15,16 +17,25 @@ pub struct EngineHandle {
     world: World,
 }
 
+impl Default for EngineHandle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[wasm_bindgen]
 impl EngineHandle {
     pub fn new() -> EngineHandle {
-        EngineHandle { world: World::new() }
+        EngineHandle {
+            world: World::new(),
+        }
     }
 
     pub fn body_count(&self) -> usize {
         self.world.len()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn step_forces(
         &self,
         positions: &[f64],
@@ -66,23 +77,15 @@ impl EngineHandle {
                 let dist = dist_sq.sqrt();
                 let mut total = 0.0;
                 for calc in calculators.iter() {
-                    total += calc.magnitude(
-                        dist,
-                        (radii[i] + radii[j]) * 0.5,
-                        charges[i],
-                        charges[j],
-                    );
+                    total +=
+                        calc.magnitude(dist, (radii[i] + radii[j]) * 0.5, charges[i], charges[j]);
                 }
                 total += hb.pair_magnitude(
                     dist,
                     donors[i] as u32 + donors[j] as u32,
                     acceptors[i] as u32 + acceptors[j] as u32,
                 );
-                if total > 4000.0 {
-                    total = 4000.0;
-                } else if total < -4000.0 {
-                    total = -4000.0;
-                }
+                total = total.clamp(-4000.0, 4000.0);
                 let scale = total / dist;
                 out_forces[i * 3] += dx * scale;
                 out_forces[i * 3 + 1] += dy * scale;

@@ -138,6 +138,9 @@ export class Application implements IEffectSink {
         if (this.renderer !== null) {
             return;
         }
+        if (element === undefined || element === null) {
+            return;
+        }
         this.renderer = new Renderer(element);
         this.applyControls();
         const canvas = this.renderer.getCanvas();
@@ -279,6 +282,14 @@ export class Application implements IEffectSink {
             }
         }
         this.world.clear();
+        this.vm.setSeed(snapshot.seed);
+        this.vm.setTemperature(snapshot.temperature);
+        this.vm.setPressure(snapshot.pressure);
+        this.vm.setPh(snapshot.ph);
+        this.vm.setViscosity(snapshot.viscosity);
+        this.vm.setPolarity(snapshot.polarity);
+        this.vm.setGravity(snapshot.gravity);
+        this.vm.syncParamsToWorld();
         const rng = new SeededRandom(snapshot.seed);
         const half = this.world.boxSize * 0.4;
         for (const spawn of snapshot.spawns) {

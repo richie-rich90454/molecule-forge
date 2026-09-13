@@ -803,7 +803,7 @@ label {
 
 .mf-panel-switch {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     padding: 8px;
     border-bottom: 1px solid var(--line);
@@ -1092,4 +1092,60 @@ label {
     font-family: var(--mono);
     font-size: 10px;
     color: var(--text);
+}
+
+/* ---------------------------------------------------------- explain panel */
+
+.mf-explain {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 10px 16px;
+}
+
+.mf-explain-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mf-explain-card h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.mf-explain-equation {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    word-break: break-word;
+}
+
+.mf-explain-message {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text-dim);
+}
+
+.mf-log-line.mf-log-clickable {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.mf-log-line.mf-log-clickable:hover {
+    background: var(--surface-2);
+    border-color: var(--line);
 }

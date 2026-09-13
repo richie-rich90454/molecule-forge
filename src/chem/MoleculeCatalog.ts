@@ -21,6 +21,7 @@ export class MoleculeCatalog {
         specs.push(...MoleculeCatalog.buildExotic());
         specs.push(...MoleculeCatalog.buildBiomolecules());
         specs.push(...MoleculeCatalog.buildNatural());
+        specs.push(...MoleculeCatalog.buildElemental());
         return specs;
     }
 
@@ -9004,6 +9005,71 @@ export class MoleculeCatalog {
                 ],
             ),
         ];
+        return specs;
+    }
+
+    private static buildElemental(): ICompactMoleculeSpec[] {
+        const elements: Array<[string, string, boolean]> = [
+            ["H", "Hydrogen", false], ["He", "Helium", false], ["Li", "Lithium", false],
+            ["Be", "Beryllium", false], ["B", "Boron", false], ["C", "Carbon", false],
+            ["N", "Nitrogen", false], ["O", "Oxygen", false], ["F", "Fluorine", false],
+            ["Ne", "Neon", false], ["Na", "Sodium", false], ["Mg", "Magnesium", false],
+            ["Al", "Aluminum", false], ["Si", "Silicon", false], ["P", "Phosphorus", false],
+            ["S", "Sulfur", false], ["Cl", "Chlorine", false], ["Ar", "Argon", false],
+            ["K", "Potassium", false], ["Ca", "Calcium", false], ["Sc", "Scandium", false],
+            ["Ti", "Titanium", false], ["V", "Vanadium", false], ["Cr", "Chromium", false],
+            ["Mn", "Manganese", false], ["Fe", "Iron", false], ["Co", "Cobalt", false],
+            ["Ni", "Nickel", false], ["Cu", "Copper", false], ["Zn", "Zinc", false],
+            ["Ga", "Gallium", false], ["Ge", "Germanium", false], ["As", "Arsenic", false],
+            ["Se", "Selenium", false], ["Br", "Bromine", false], ["Kr", "Krypton", false],
+            ["Rb", "Rubidium", false], ["Sr", "Strontium", false], ["Y", "Yttrium", false],
+            ["Zr", "Zirconium", false], ["Nb", "Niobium", false], ["Mo", "Molybdenum", false],
+            ["Tc", "Technetium", true], ["Ru", "Ruthenium", false], ["Rh", "Rhodium", false],
+            ["Pd", "Palladium", false], ["Ag", "Silver", false], ["Cd", "Cadmium", false],
+            ["In", "Indium", false], ["Sn", "Tin", false], ["Sb", "Antimony", false],
+            ["Te", "Tellurium", false], ["I", "Iodine", false], ["Xe", "Xenon", false],
+            ["Cs", "Cesium", false], ["Ba", "Barium", false], ["La", "Lanthanum", false],
+            ["Ce", "Cerium", false], ["Pr", "Praseodymium", false], ["Nd", "Neodymium", false],
+            ["Pm", "Promethium", true], ["Sm", "Samarium", false], ["Eu", "Europium", false],
+            ["Gd", "Gadolinium", false], ["Tb", "Terbium", false], ["Dy", "Dysprosium", false],
+            ["Ho", "Holmium", false], ["Er", "Erbium", false], ["Tm", "Thulium", false],
+            ["Yb", "Ytterbium", false], ["Lu", "Lutetium", false], ["Hf", "Hafnium", false],
+            ["Ta", "Tantalum", false], ["W", "Tungsten", false], ["Re", "Rhenium", false],
+            ["Os", "Osmium", false], ["Ir", "Iridium", false], ["Pt", "Platinum", false],
+            ["Au", "Gold", false], ["Hg", "Mercury", false], ["Tl", "Thallium", false],
+            ["Pb", "Lead", false], ["Bi", "Bismuth", false], ["Po", "Polonium", true],
+            ["At", "Astatine", true], ["Rn", "Radon", true], ["Fr", "Francium", true],
+            ["Ra", "Radium", true], ["Ac", "Actinium", true], ["Th", "Thorium", true],
+            ["Pa", "Protactinium", true], ["U", "Uranium", true], ["Np", "Neptunium", true],
+            ["Pu", "Plutonium", true],
+        ];
+        const specs: ICompactMoleculeSpec[] = [];
+        for (const [symbol, name, warn] of elements) {
+            specs.push(
+                MoleculeCatalog.make(
+                    "el-" + symbol.toLowerCase(),
+                    name + " atom",
+                    symbol,
+                    "[" + symbol + "]",
+                    "elemental",
+                    warn ? ["element", "atom", "toxin"] : ["element", "atom"],
+                    [symbol],
+                    [],
+                    warn,
+                    "",
+                    [],
+                    [[0, 0]],
+                ),
+            );
+        }
+        const pool = [...MoleculeCatalog.buildFunctional()];
+        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "hydrogen"), "hydrogen-elemental", "Hydrogen", "elemental", ["element", "gas"]));
+        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "nitrogen"), "nitrogen-elemental", "Nitrogen", "elemental", ["element", "gas"]));
+        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "oxygen"), "oxygen-elemental", "Oxygen", "elemental", ["element", "gas"]));
+        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "fluorine"), "fluorine-elemental", "Fluorine", "elemental", ["element", "gas"]));
+        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "chlorine"), "chlorine-elemental", "Chlorine", "elemental", ["element", "gas"]));
+        specs.push(MoleculeCatalog.make("bromine", "Bromine", "Br2", "BrBr", "elemental", ["element", "gas"], ["Br", "Br"], [[0, 1, 1]]));
+        specs.push(MoleculeCatalog.make("iodine", "Iodine", "I2", "II", "elemental", ["element", "gas"], ["I", "I"], [[0, 1, 1]]));
         return specs;
     }
 }

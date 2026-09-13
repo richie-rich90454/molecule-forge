@@ -70,6 +70,16 @@ describe("ElementChemistry", () => {
         expect(ElementChemistry.isAnionFormer(ElementChemistry.get("Na"))).toBe(false);
     });
 
+    it("distinguishes inert from reactive noble gases", () => {
+        expect(ElementChemistry.isInert(ElementChemistry.get("He"))).toBe(true);
+        expect(ElementChemistry.isInert(ElementChemistry.get("Ne"))).toBe(true);
+        expect(ElementChemistry.isInert(ElementChemistry.get("Ar"))).toBe(true);
+        expect(ElementChemistry.isInert(ElementChemistry.get("Xe"))).toBe(false);
+        expect(ElementChemistry.isInert(ElementChemistry.get("Kr"))).toBe(false);
+        expect(ElementChemistry.isInert(ElementChemistry.get("Rn"))).toBe(false);
+        expect(ElementChemistry.isInert(ElementChemistry.get("O"))).toBe(false);
+    });
+
     it("throws on unknown elements", () => {
         expect(() => ElementChemistry.get("Xx")).toThrow("Unknown element chemistry: Xx");
         expect(ElementChemistry.has("Xx")).toBe(false);
@@ -199,6 +209,56 @@ describe("CompoundSynthesizer", () => {
         expect(synthesizer.predict(pool({ O: 2 }, {})).product).toBeNull();
         expect(synthesizer.predict(pool({ H: 1, O: 1 })).product).toBeNull();
         expect(synthesizer.predict(pool({ H: 1 }, { H: 1 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ H: 2, Cl: 1 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ H: 3, O: 1 })).product).toBeNull();
+    });
+
+    it("scales covalent formulas to the available stoichiometry", () => {
+        const water = synthesizer.predict(pool({ H: 4, O: 2 })).product as ISynthesisProduct;
+        expect(water.catalogId).toBe("water");
+        expect(water.units).toBe(2);
+        const dioxide = synthesizer.predict(pool({ C: 2, O: 4 })).product as ISynthesisProduct;
+        expect(dioxide.catalogId).toBe("carbon-dioxide");
+        expect(dioxide.units).toBe(2);
+        const monoxide = synthesizer.predict(pool({ C: 2, O: 2 })).product as ISynthesisProduct;
+        expect(monoxide.catalogId).toBe("carbon-monoxide");
+        expect(monoxide.units).toBe(2);
+        const hydrogen = synthesizer.predict(pool({ H: 4 }, { H: 4 })).product as ISynthesisProduct;
+        expect(hydrogen.catalogId).toBe("hydrogen-elemental");
+        expect(hydrogen.units).toBe(2);
+    });
+
+    it("forms common inorganic molecules", () => {
+        expect(
+            (synthesizer.predict(pool({ C: 1, H: 4 })).product as ISynthesisProduct).catalogId,
+        ).toBe("alkane-c1");
+        expect(
+            (synthesizer.predict(pool({ H: 2, O: 2 })).product as ISynthesisProduct).catalogId,
+        ).toBe("hydrogen-peroxide");
+        expect(
+            (synthesizer.predict(pool({ N: 2, O: 1 })).product as ISynthesisProduct).catalogId,
+        ).toBe("nitrous-oxide");
+    });
+
+    it("forms noble gas fluorides only for Xe, Kr, and Rn", () => {
+        const xef2 = synthesizer.predict(pool({ Xe: 1, F: 2 })).product as ISynthesisProduct;
+        expect(xef2.formula).toBe("XeF2");
+        expect(xef2.name).toBe("Xenon difluoride");
+        expect(
+            (synthesizer.predict(pool({ Xe: 1, F: 4 })).product as ISynthesisProduct).formula,
+        ).toBe("XeF4");
+        const xef6 = synthesizer.predict(pool({ Xe: 1, F: 6 })).product as ISynthesisProduct;
+        expect(xef6.formula).toBe("XeF6");
+        expect(xef6.record?.atoms.length).toBe(7);
+        expect(
+            (synthesizer.predict(pool({ Kr: 1, F: 2 })).product as ISynthesisProduct).formula,
+        ).toBe("KrF2");
+        expect(
+            (synthesizer.predict(pool({ Rn: 1, F: 2 })).product as ISynthesisProduct).formula,
+        ).toBe("RnF2");
+        expect(synthesizer.predict(pool({ He: 1, F: 2 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ Ne: 1, F: 2 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ Ar: 1, F: 2 })).product).toBeNull();
     });
 
     it("ignores noble gas when matching reactive partners", () => {

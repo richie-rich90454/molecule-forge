@@ -382,6 +382,8 @@ describe("RendererFacade", () => {
         renderer.setHaloEnabled(false);
         renderer.setChargeGlow(0);
         renderer.renderFrame([a, b], 0.5, 0.016, 300);
+        renderer.setChargeGlow(1);
+        renderer.renderFrame([a, b], 0.5, 0.016, 300);
         expect(renderer.getCanvas()).toBeDefined();
         expect(renderer.getController().getRadius()).toBe(55);
         expect(renderer.getPacer().alpha).toBeGreaterThanOrEqual(0);

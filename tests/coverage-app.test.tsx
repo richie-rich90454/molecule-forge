@@ -440,6 +440,9 @@ describe("AppShell coverage", () => {
         expect(vm.getPanel()).toBe("reference");
         expect(screen.getByText("Periodic table")).toBeInTheDocument();
         expect(screen.getByText("Gas constant R")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Explain" }));
+        expect(vm.getPanel()).toBe("explain");
+        expect(screen.getByText("Last reaction")).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: "Molecules" }));
         expect(vm.getPanel()).toBe("library");
         unmount();

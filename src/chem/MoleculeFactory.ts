@@ -301,22 +301,91 @@ export class MoleculeFactory {
         rng: () => number,
     ): void {
         void rng;
-        const ideals = new Map<string, number>();
-        const bondedPairs = new Set<string>();
-        for (const b of bonds) {
-            ideals.set(
-                b.a + ":" + b.b,
-                ElementRegistry.bondLength(elements[b.a], elements[b.b], b.order),
-            );
-            bondedPairs.add(b.a + ":" + b.b);
-            bondedPairs.add(b.b + ":" + b.a);
+        const n = atoms.length;
+        const bondCount = bonds.length;
+        const idealArr = new Float64Array(bondCount);
+        const bondedPairs = new Set<number>();
+        for (let i = 0; i < bondCount; i++) {
+            const b = bonds[i];
+            idealArr[i] = ElementRegistry.bondLength(elements[b.a], elements[b.b], b.order);
+            bondedPairs.add(b.a * n + b.b);
+            bondedPairs.add(b.b * n + b.a);
         }
-        for (let iter = 0; iter < 400; iter++) {
+        const OFF = 2048;
+        const SPAN = 4096;
+        const cellKey = (x: number, y: number, z: number): number =>
+            ((x + OFF) * SPAN + (y + OFF)) * SPAN + (z + OFF);
+        const cell = 2.5;
+        const resolveOverlaps = (): boolean => {
+            const grid = new Map<number, number[]>();
+            for (let i = 0; i < n; i++) {
+                const a = atoms[i];
+                const key = cellKey(
+                    Math.floor(a.x / cell),
+                    Math.floor(a.y / cell),
+                    Math.floor(a.z / cell),
+                );
+                const list = grid.get(key);
+                if (list === undefined) {
+                    grid.set(key, [i]);
+                } else {
+                    list.push(i);
+                }
+            }
+            let found = false;
+            for (let i = 0; i < n; i++) {
+                const a = atoms[i];
+                const cx = Math.floor(a.x / cell);
+                const cy = Math.floor(a.y / cell);
+                const cz = Math.floor(a.z / cell);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            const list = grid.get(cellKey(cx + dx, cy + dy, cz + dz));
+                            if (list === undefined) {
+                                continue;
+                            }
+                            for (const j of list) {
+                                if (j <= i) {
+                                    continue;
+                                }
+                                if (bondedPairs.has(i * n + j)) {
+                                    continue;
+                                }
+                                const p = atoms[i];
+                                const q = atoms[j];
+                                const ddx = q.x - p.x;
+                                const ddy = q.y - p.y;
+                                const ddz = q.z - p.z;
+                                const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+                                if (d2 < 1.44 && d2 > 1e-12) {
+                                    found = true;
+                                    const dist = Math.sqrt(d2);
+                                    const overlap = 1.2 - dist;
+                                    const push = (overlap / dist) * 0.3;
+                                    p.x -= ddx * push;
+                                    p.y -= ddy * push;
+                                    p.z -= ddz * push;
+                                    q.x += ddx * push;
+                                    q.y += ddy * push;
+                                    q.z += ddz * push;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return found;
+        };
+        const budget = 400;
+        let overlapping = true;
+        for (let iter = 0; iter < budget; iter++) {
             let maxError = 0;
-            for (const b of bonds) {
+            for (let bi = 0; bi < bondCount; bi++) {
+                const b = bonds[bi];
                 const p = atoms[b.a];
                 const q = atoms[b.b];
-                const ideal = ideals.get(b.a + ":" + b.b) as number;
+                const ideal = idealArr[bi];
                 const dx = q.x - p.x;
                 const dy = q.y - p.y;
                 const dz = q.z - p.z;
@@ -333,78 +402,14 @@ export class MoleculeFactory {
                 q.y -= dy * push;
                 q.z -= dz * push;
             }
-            const cell = 2.5;
-            const grid = new Map<string, number[]>();
-            const cellOf = (index: number): string => {
-                const a = atoms[index];
-                return (
-                    Math.floor(a.x / cell) +
-                    "," +
-                    Math.floor(a.y / cell) +
-                    "," +
-                    Math.floor(a.z / cell)
-                );
-            };
-            for (let i = 0; i < atoms.length; i++) {
-                const key = cellOf(i);
-                const list = grid.get(key);
-                if (list === undefined) {
-                    grid.set(key, [i]);
-                } else {
-                    list.push(i);
+            if (overlapping || iter % 32 === 0) {
+                const found = resolveOverlaps();
+                if (found) {
+                    maxError = Math.max(maxError, 1.2);
                 }
+                overlapping = found;
             }
-            const seen = new Set<string>();
-            for (let i = 0; i < atoms.length; i++) {
-                const a = atoms[i];
-                const cx = Math.floor(a.x / cell);
-                const cy = Math.floor(a.y / cell);
-                const cz = Math.floor(a.z / cell);
-                for (let dx = -1; dx <= 1; dx++) {
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dz = -1; dz <= 1; dz++) {
-                            const list = grid.get(cx + dx + "," + (cy + dy) + "," + (cz + dz));
-                            if (list === undefined) {
-                                continue;
-                            }
-                            for (const j of list) {
-                                if (j <= i) {
-                                    continue;
-                                }
-                                const key = i + ":" + j;
-                                if (seen.has(key)) {
-                                    continue;
-                                }
-                                seen.add(key);
-                                if (bondedPairs.has(key)) {
-                                    continue;
-                                }
-                                const p = atoms[i];
-                                const q = atoms[j];
-                                const ddx = q.x - p.x;
-                                const ddy = q.y - p.y;
-                                const ddz = q.z - p.z;
-                                const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-                                if (d2 < 1.44 && d2 > 1e-12) {
-                                    const dist = Math.sqrt(d2);
-                                    const overlap = 1.2 - dist;
-                                    if (overlap > maxError) {
-                                        maxError = overlap;
-                                    }
-                                    const push = (overlap / dist) * 0.1;
-                                    p.x -= ddx * push;
-                                    p.y -= ddy * push;
-                                    p.z -= ddz * push;
-                                    q.x += ddx * push;
-                                    q.y += ddy * push;
-                                    q.z += ddz * push;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (maxError < 0.15 && iter > 30) {
+            if (maxError < 0.15 && !overlapping && iter > 30) {
                 break;
             }
         }

@@ -1,4 +1,4 @@
-import type { IForceCalculator, IPairInput } from "./IForceCalculator";
+import type { IForceCalculator, IPairBody, IPairInput } from "./IForceCalculator";
 
 export class CoulombCalculator implements IForceCalculator {
     private readonly strength: number;
@@ -11,6 +11,10 @@ export class CoulombCalculator implements IForceCalculator {
 
     public getName(): string {
         return "Coulomb";
+    }
+
+    public getRange(a: IPairBody, b: IPairBody): number {
+        return a.charge === 0 || b.charge === 0 ? 0 : this.cutoff;
     }
 
     public computeMagnitude(input: IPairInput): number {

@@ -8,7 +8,11 @@ pub struct SpatialHashGrid {
 
 impl SpatialHashGrid {
     pub fn new(cell_size: f64) -> Self {
-        Self { cell_size, cells: HashMap::new(), positions: HashMap::new() }
+        Self {
+            cell_size,
+            cells: HashMap::new(),
+            positions: HashMap::new(),
+        }
     }
 
     pub fn clear(&mut self) {
@@ -18,7 +22,7 @@ impl SpatialHashGrid {
 
     pub fn insert(&mut self, id: usize, x: f64, y: f64, z: f64) {
         let key = self.key_for(x, y, z);
-        self.cells.entry(key).or_insert_with(Vec::new).push(id);
+        self.cells.entry(key).or_default().push(id);
         self.positions.insert(id, (x, y, z));
     }
 

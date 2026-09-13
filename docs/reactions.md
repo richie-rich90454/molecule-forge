@@ -1,9 +1,10 @@
 # Reactions
 
-Two engines run in the fixed-step loop, both publishing the same event type so the log, flashes, particles, and sound are uniform.
+Three engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
 
 1. **`ReactionEngine`** applies the fifteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
 2. **`SynthesisEngine`** predicts new compounds from loose atoms using `CompoundSynthesizer` and the `ElementChemistry` table.
+3. **`RedoxEngine`** swaps metals using the standard reduction potentials in `Thermochemistry`.
 
 ## Rule engine
 
@@ -91,6 +92,14 @@ Examples:
 | 2 H + 1 F (cold)      | hint only                    | "needs more heat to form"          |
 
 The synthesizer is a valence and electronegativity model with common oxidation states and a curated polyatomic ion table, not a full quantum solver. It does not compute redox potentials or reaction enthalpies, so competition between several valid products is resolved by a documented preference order (oxygen-bearing and multiply-charged anions first, then atom economy, then charge product) rather than by free energy. It does not model solvent structure or polyatomic ions beyond the table, and it draws ionic solids as discrete bonded clusters rather than infinite lattices.
+
+## Redox and thermochemistry
+
+`SynthesisEngine` computes a reaction enthalpy for every product and reports it in the log. Covalent and elemental values come from standard formation enthalpies and bond energies; binary ionic values come from a Born-Haber cycle with ionization energies, electron affinities, and a Kapustinskii lattice energy. Products that are strongly endothermic are held back until the chamber is hot or sparked. Where a datum is missing the enthalpy is reported as null and the ordering heuristic decides, so no number is fabricated.
+
+`RedoxEngine` handles single displacement. A free metal atom in contact with a salt of a less reducing metal is swapped for it when the cell potential from the standard reduction table is positive: zinc + copper chloride gives zinc chloride + copper (1.10 V), while the reverse does not fire. The engine also respects the chamber's atom budget.
+
+`SolventModel` supplies the continuum solvent: it computes ionic strength from the formal charges in the chamber and the chamber volume, then a Debye-Huckel activity coefficient that corrects the endothermic threshold. A salt-rich chamber is treated as a higher-ionic-strength medium.
 
 ## Adding a rule
 

@@ -29,6 +29,9 @@ export class Renderer {
     private readonly observer: ResizeObserver;
     private readonly atomBuffer: IRenderAtom[];
     private readonly bondBuffer: IRenderBond[];
+    private readonly atomPool: IRenderAtom[];
+    private readonly bondPool: IRenderBond[];
+    private readonly renderRadius: Map<string, number>;
     private readonly raycaster: THREE.Raycaster;
     private readonly screenVec: THREE.Vector3;
     private showBonds: boolean;
@@ -69,6 +72,9 @@ export class Renderer {
         this.quality = new QualityManager();
         this.atomBuffer = [];
         this.bondBuffer = [];
+        this.atomPool = [];
+        this.bondPool = [];
+        this.renderRadius = new Map();
         this.raycaster = new THREE.Raycaster();
         this.screenVec = new THREE.Vector3();
         this.showBonds = true;
@@ -225,6 +231,9 @@ export class Renderer {
         this.atomBuffer.length = 0;
         this.bondBuffer.length = 0;
         const jitterAmp = Math.min(0.09, 0.02 + (temperature / 1500) * 0.07);
+        const time = this.time;
+        const chargeGlow = this.chargeGlow;
+        const showBonds = this.showBonds;
         for (const inst of instances) {
             if (!inst.alive) {
                 continue;
@@ -241,73 +250,130 @@ export class Renderer {
             const iz = inst.prevPz + (inst.pz - inst.prevPz) * alpha;
             const baseIndex = this.atomBuffer.length;
             const atoms = inst.record.atoms;
+            const qx = inst.qx;
+            const qy = inst.qy;
+            const qz = inst.qz;
+            const qw = inst.qw;
             for (let i = 0; i < atoms.length; i++) {
                 const atom = atoms[i];
-                const rotated = Renderer.rotateByQuaternion(
-                    atom.x,
-                    atom.y,
-                    atom.z,
-                    inst.qx,
-                    inst.qy,
-                    inst.qz,
-                    inst.qw,
-                );
+                const x = atom.x;
+                const y = atom.y;
+                const z = atom.z;
+                const tx = qw * x + qy * z - qz * y;
+                const ty = qw * y + qz * x - qx * z;
+                const tz = qw * z + qx * y - qy * x;
+                const tw = -qx * x - qy * y - qz * z;
+                const rx = tx * qw + tw * -qx + ty * -qz - tz * -qy;
+                const ry = ty * qw + tw * -qy + tz * -qx - tx * -qz;
+                const rz = tz * qw + tw * -qz + tx * -qy - ty * -qx;
                 const phase = inst.jitterSeed + i * 1.7;
-                const jx = Math.sin(this.time * 9 + phase) * jitterAmp;
-                const jy = Math.sin(this.time * 7.3 + phase * 1.3) * jitterAmp;
-                const jz = Math.sin(this.time * 8.1 + phase * 0.7) * jitterAmp;
-                let radius = 0.55;
-                try {
-                    radius = (ElementRegistry.get(atom.el).covalentRadius + 0.25) * 0.62;
-                } catch (error) {
-                    void error;
-                }
-                this.atomBuffer.push({
-                    x: ix + rotated[0] + jx,
-                    y: iy + rotated[1] + jy,
-                    z: iz + rotated[2] + jz,
-                    radius,
-                    element: atom.el,
-                    glow: atom.charge !== 0 ? 0.8 * this.chargeGlow : 0,
-                });
+                const jx = Math.sin(time * 9 + phase) * jitterAmp;
+                const jy = Math.sin(time * 7.3 + phase * 1.3) * jitterAmp;
+                const jz = Math.sin(time * 8.1 + phase * 0.7) * jitterAmp;
+                this.pushAtom(
+                    ix + rx + jx,
+                    iy + ry + jy,
+                    iz + rz + jz,
+                    this.radiusOf(atom.el),
+                    atom.el,
+                    atom.charge !== 0 ? 0.8 * chargeGlow : 0,
+                );
             }
-            if (this.showBonds) {
-                for (const bond of inst.record.bonds) {
+            if (showBonds) {
+                const bonds = inst.record.bonds;
+                for (let i = 0; i < bonds.length; i++) {
+                    const bond = bonds[i];
                     const a = this.atomBuffer[baseIndex + bond.a];
                     const b = this.atomBuffer[baseIndex + bond.b];
-                    this.bondBuffer.push({
-                        ax: a.x,
-                        ay: a.y,
-                        az: a.z,
-                        bx: b.x,
-                        by: b.y,
-                        bz: b.z,
-                        order: bond.order,
-                        aromatic: bond.aromatic,
-                        ionic: bond.ionic === true,
-                    });
+                    this.pushBond(
+                        a.x,
+                        a.y,
+                        a.z,
+                        b.x,
+                        b.y,
+                        b.z,
+                        bond.order,
+                        bond.aromatic,
+                        bond.ionic === true,
+                    );
                 }
             }
         }
     }
 
-    private static rotateByQuaternion(
+    private pushAtom(
         x: number,
         y: number,
         z: number,
-        qx: number,
-        qy: number,
-        qz: number,
-        qw: number,
-    ): [number, number, number] {
-        const ix = qw * x + qy * z - qz * y;
-        const iy = qw * y + qz * x - qx * z;
-        const iz = qw * z + qx * y - qy * x;
-        const iw = -qx * x - qy * y - qz * z;
-        return [
-            ix * qw + iw * -qx + iy * -qz - iz * -qy,
-            iy * qw + iw * -qy + iz * -qx - ix * -qz,
-            iz * qw + iw * -qz + ix * -qy - iy * -qx,
-        ];
+        radius: number,
+        element: string,
+        glow: number,
+    ): void {
+        const index = this.atomBuffer.length;
+        let atom = this.atomPool[index];
+        if (atom === undefined) {
+            atom = { x: 0, y: 0, z: 0, radius: 0, element: "", glow: 0 };
+            this.atomPool[index] = atom;
+        }
+        atom.x = x;
+        atom.y = y;
+        atom.z = z;
+        atom.radius = radius;
+        atom.element = element;
+        atom.glow = glow;
+        this.atomBuffer.push(atom);
+    }
+
+    private pushBond(
+        ax: number,
+        ay: number,
+        az: number,
+        bx: number,
+        by: number,
+        bz: number,
+        order: number,
+        aromatic: boolean,
+        ionic: boolean,
+    ): void {
+        const index = this.bondBuffer.length;
+        let bond = this.bondPool[index];
+        if (bond === undefined) {
+            bond = {
+                ax: 0,
+                ay: 0,
+                az: 0,
+                bx: 0,
+                by: 0,
+                bz: 0,
+                order: 0,
+                aromatic: false,
+                ionic: false,
+            };
+            this.bondPool[index] = bond;
+        }
+        bond.ax = ax;
+        bond.ay = ay;
+        bond.az = az;
+        bond.bx = bx;
+        bond.by = by;
+        bond.bz = bz;
+        bond.order = order;
+        bond.aromatic = aromatic;
+        bond.ionic = ionic;
+        this.bondBuffer.push(bond);
+    }
+
+    private radiusOf(element: string): number {
+        let radius = this.renderRadius.get(element);
+        if (radius === undefined) {
+            radius = 0.55;
+            try {
+                radius = (ElementRegistry.get(element).covalentRadius + 0.25) * 0.62;
+            } catch (error) {
+                void error;
+            }
+            this.renderRadius.set(element, radius);
+        }
+        return radius;
     }
 }

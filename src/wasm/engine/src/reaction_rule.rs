@@ -57,3 +57,27 @@ impl ReactionRule {
         (raw * boost * 8.0).min(0.5)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{ReactionCondition, ReactionRule};
+
+    #[test]
+    fn gates_on_temperature_and_catalyst() {
+        let cond = ReactionCondition::with_hot(700.0);
+        assert!(!cond.is_met(100.0, 0.0, 0.0));
+        assert!(cond.is_met(900.0, 0.0, 0.0));
+        let mut spark_only = ReactionCondition::new();
+        spark_only.needs_spark = true;
+        assert!(!spark_only.is_met(298.0, 0.0, 0.0));
+        assert!(spark_only.is_met(298.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn rate_stays_bounded() {
+        let rule = ReactionRule::new("combustion-methane", 45.0, -890.0);
+        let rate = rule.rate(900.0, 1.0);
+        assert!(rate > 0.0 && rate <= 0.5);
+        assert_eq!(rule.rate(50.0, 0.0), 0.0);
+    }
+}

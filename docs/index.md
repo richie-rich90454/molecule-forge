@@ -19,7 +19,7 @@ features:
     - title: Physics at 240 Hz
       details: Rigid bodies with Lennard-Jones, screened Coulomb, and hydrogen-bond forces on a spatial hash grid. Cold scenes crystallize, hot scenes vaporize, nothing is scripted.
     - title: Scratch the surface, then ignite it
-      details: Fifteen hand-authored reaction rules for combustion, polymerization, neutralization, and detonation, on top of runtime synthesis for everything else.
+      details: Fourteen hand-authored reaction rules for combustion, polymerization, neutralization, and detonation, plus general combustion, halogenation, redox, synthesis, and pyrolysis engines for everything else.
     - title: One file, anywhere
       details: The production build is a single dist/index.html. Double-click it, or host it on any static server. No fetch of local assets, no SharedArrayBuffer, no backend.
     - title: Deterministic scenarios

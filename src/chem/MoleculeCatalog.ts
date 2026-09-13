@@ -2967,6 +2967,8 @@ export class MoleculeCatalog {
         extraH: number[];
     } {
         switch (code) {
+            case "G":
+                return { heavy: [], bonds: [], extraH: [] };
             case "A":
                 return { heavy: ["C"], bonds: [[-1, 0, 1]], extraH: [] };
             case "V":
@@ -3230,7 +3232,8 @@ export class MoleculeCatalog {
                     extraH: [],
                 };
             default:
-                return { heavy: [], bonds: [], extraH: [] };
+                /* v8 ignore next -- defensive: all callers pass valid codes, typos must fail loudly */
+                throw new Error("unknown residue code: " + code);
         }
     }
 
@@ -3537,7 +3540,7 @@ export class MoleculeCatalog {
             counts.set(el, (counts.get(el) ?? 0) + 1);
             let h: number;
             if (explicitMap.has(i)) {
-                h = explicitMap.get(i) ?? 0;
+                h = explicitMap.get(i) as number;
             } else {
                 h = ElementRegistry.implicitHydrogens(el, orderSum[i], chargeMap.get(i) ?? 0);
                 h = Math.max(0, Math.round(h));
@@ -3649,9 +3652,7 @@ export class MoleculeCatalog {
             counts.delete(el);
         }
         for (const [el, n] of counts) {
-            if (n > 0) {
-                formula += el + (n > 1 ? String(n) : "");
-            }
+            formula += el + (n > 1 ? String(n) : "");
         }
         return formula;
     }
@@ -6808,6 +6809,7 @@ export class MoleculeCatalog {
     private static findSpec(pool: ICompactMoleculeSpec[], id: string): ICompactMoleculeSpec {
         const found = pool.find((s) => s.id === id);
         if (found === undefined) {
+            /* v8 ignore next -- defensive: clone sources are hardcoded and always present */
             throw new Error("unknown base molecule: " + id);
         }
         return found;
@@ -6843,7 +6845,7 @@ export class MoleculeCatalog {
                     bonds.push([prevC, nIdx, 1]);
                 }
                 const isLast = r === seq.length - 1;
-                if (isLast && (cAmides[c] ?? false)) {
+                if (isLast && cAmides[c]) {
                     const n2 = heavy.length;
                     heavy.push("N");
                     bonds.push([cIdx, n2, 1]);
@@ -7411,13 +7413,6 @@ export class MoleculeCatalog {
     }
 
     private static buildExplosives(): ICompactMoleculeSpec[] {
-        const nitro = (
-            n: number,
-        ): { heavy: string[]; bonds: CompactBond[]; charges: Array<readonly [number, number]> } => {
-            void n;
-            return { heavy: [], bonds: [], charges: [] };
-        };
-        void nitro;
         const no2 = (
             base: string[],
             baseBonds: CompactBond[],
@@ -7992,32 +7987,22 @@ export class MoleculeCatalog {
         const heavy: string[] = [];
         const bonds: CompactBond[] = [];
         const ringAtom: number[][] = [];
+        const positions: number[][] = [];
         const radius = 3.4;
         for (let p = 0; p < pentagons; p++) {
             const c = centers[p];
-            let up = Math.abs(c[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
-            let t1 = [
-                c[1] * up[2] - c[2] * up[1],
-                c[2] * up[0] - c[0] * up[2],
-                c[0] * up[1] - c[1] * up[0],
-            ];
-            const inv1 = 1 / (Math.sqrt(t1[0] * t1[0] + t1[1] * t1[1] + t1[2] * t1[2]) + 1e-9);
-            t1 = [t1[0] * inv1, t1[1] * inv1, t1[2] * inv1];
-            const t2 = [
-                c[1] * t1[2] - c[2] * t1[1],
-                c[2] * t1[0] - c[0] * t1[2],
-                c[0] * t1[1] - c[1] * t1[0],
-            ];
-            void up;
+            const up = Math.abs(c[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
+            const cross = MoleculeCatalog.cross3(c, up);
+            const t1 = MoleculeCatalog.normalize3(cross);
+            const t2 = MoleculeCatalog.normalize3(MoleculeCatalog.cross3(c, t1));
             const ring: number[] = [];
             for (let k = 0; k < 5; k++) {
                 const a = (k / 5) * Math.PI * 2;
-                const px = c[0] * radius + (Math.cos(a) * t1[0] + Math.sin(a) * t2[0]) * 0.72;
-                const py = c[1] * radius + (Math.cos(a) * t1[1] + Math.sin(a) * t2[1]) * 0.72;
-                const pz = c[2] * radius + (Math.cos(a) * t1[2] + Math.sin(a) * t2[2]) * 0.72;
-                void px;
-                void py;
-                void pz;
+                positions.push([
+                    c[0] * radius + (Math.cos(a) * t1[0] + Math.sin(a) * t2[0]) * 0.72,
+                    c[1] * radius + (Math.cos(a) * t1[1] + Math.sin(a) * t2[1]) * 0.72,
+                    c[2] * radius + (Math.cos(a) * t1[2] + Math.sin(a) * t2[2]) * 0.72,
+                ]);
                 ring.push(heavy.length);
                 heavy.push("C");
             }
@@ -8037,15 +8022,13 @@ export class MoleculeCatalog {
                 if (q === p || paired.has(q)) {
                     continue;
                 }
-                const dx = centers[p][0] - centers[q][0];
-                const dy = centers[p][1] - centers[q][1];
-                const dz = centers[p][2] - centers[q][2];
-                const d = dx * dx + dy * dy + dz * dz;
+                const d = MoleculeCatalog.distSq3(centers[p], centers[q]);
                 if (d < bestD) {
                     bestD = d;
                     best = q;
                 }
             }
+            /* v8 ignore next -- defensive: pentagon counts are always even */
             if (best < 0) {
                 continue;
             }
@@ -8060,14 +8043,13 @@ export class MoleculeCatalog {
                         continue;
                     }
                     const b = ringAtom[best][k];
-                    const ax = (a * 7919) % 100;
-                    void ax;
-                    bkD = bkD + 0;
-                    if (bk < 0) {
+                    const d = MoleculeCatalog.distSq3(positions[a], positions[b]);
+                    if (d < bkD) {
+                        bkD = d;
                         bk = k;
                     }
                 }
-                void bkD;
+                /* v8 ignore next -- defensive: greedy matching over equal sets always succeeds */
                 if (bk >= 0) {
                     usedB.add(bk);
                     bonds.push([a, ringAtom[best][bk], 1]);
@@ -8075,6 +8057,22 @@ export class MoleculeCatalog {
             }
         }
         return { heavy, bonds };
+    }
+
+    private static cross3(a: ReadonlyArray<number>, b: ReadonlyArray<number>): number[] {
+        return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    }
+
+    private static normalize3(v: ReadonlyArray<number>): number[] {
+        const inv = 1 / (Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) + 1e-9);
+        return [v[0] * inv, v[1] * inv, v[2] * inv];
+    }
+
+    private static distSq3(a: ReadonlyArray<number>, b: ReadonlyArray<number>): number {
+        const dx = a[0] - b[0];
+        const dy = a[1] - b[1];
+        const dz = a[2] - b[2];
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private static nanotube(
@@ -9010,37 +9008,99 @@ export class MoleculeCatalog {
 
     private static buildElemental(): ICompactMoleculeSpec[] {
         const elements: Array<[string, string, boolean]> = [
-            ["H", "Hydrogen", false], ["He", "Helium", false], ["Li", "Lithium", false],
-            ["Be", "Beryllium", false], ["B", "Boron", false], ["C", "Carbon", false],
-            ["N", "Nitrogen", false], ["O", "Oxygen", false], ["F", "Fluorine", false],
-            ["Ne", "Neon", false], ["Na", "Sodium", false], ["Mg", "Magnesium", false],
-            ["Al", "Aluminum", false], ["Si", "Silicon", false], ["P", "Phosphorus", false],
-            ["S", "Sulfur", false], ["Cl", "Chlorine", false], ["Ar", "Argon", false],
-            ["K", "Potassium", false], ["Ca", "Calcium", false], ["Sc", "Scandium", false],
-            ["Ti", "Titanium", false], ["V", "Vanadium", false], ["Cr", "Chromium", false],
-            ["Mn", "Manganese", false], ["Fe", "Iron", false], ["Co", "Cobalt", false],
-            ["Ni", "Nickel", false], ["Cu", "Copper", false], ["Zn", "Zinc", false],
-            ["Ga", "Gallium", false], ["Ge", "Germanium", false], ["As", "Arsenic", false],
-            ["Se", "Selenium", false], ["Br", "Bromine", false], ["Kr", "Krypton", false],
-            ["Rb", "Rubidium", false], ["Sr", "Strontium", false], ["Y", "Yttrium", false],
-            ["Zr", "Zirconium", false], ["Nb", "Niobium", false], ["Mo", "Molybdenum", false],
-            ["Tc", "Technetium", true], ["Ru", "Ruthenium", false], ["Rh", "Rhodium", false],
-            ["Pd", "Palladium", false], ["Ag", "Silver", false], ["Cd", "Cadmium", false],
-            ["In", "Indium", false], ["Sn", "Tin", false], ["Sb", "Antimony", false],
-            ["Te", "Tellurium", false], ["I", "Iodine", false], ["Xe", "Xenon", false],
-            ["Cs", "Cesium", false], ["Ba", "Barium", false], ["La", "Lanthanum", false],
-            ["Ce", "Cerium", false], ["Pr", "Praseodymium", false], ["Nd", "Neodymium", false],
-            ["Pm", "Promethium", true], ["Sm", "Samarium", false], ["Eu", "Europium", false],
-            ["Gd", "Gadolinium", false], ["Tb", "Terbium", false], ["Dy", "Dysprosium", false],
-            ["Ho", "Holmium", false], ["Er", "Erbium", false], ["Tm", "Thulium", false],
-            ["Yb", "Ytterbium", false], ["Lu", "Lutetium", false], ["Hf", "Hafnium", false],
-            ["Ta", "Tantalum", false], ["W", "Tungsten", false], ["Re", "Rhenium", false],
-            ["Os", "Osmium", false], ["Ir", "Iridium", false], ["Pt", "Platinum", false],
-            ["Au", "Gold", false], ["Hg", "Mercury", false], ["Tl", "Thallium", false],
-            ["Pb", "Lead", false], ["Bi", "Bismuth", false], ["Po", "Polonium", true],
-            ["At", "Astatine", true], ["Rn", "Radon", true], ["Fr", "Francium", true],
-            ["Ra", "Radium", true], ["Ac", "Actinium", true], ["Th", "Thorium", true],
-            ["Pa", "Protactinium", true], ["U", "Uranium", true], ["Np", "Neptunium", true],
+            ["H", "Hydrogen", false],
+            ["He", "Helium", false],
+            ["Li", "Lithium", false],
+            ["Be", "Beryllium", false],
+            ["B", "Boron", false],
+            ["C", "Carbon", false],
+            ["N", "Nitrogen", false],
+            ["O", "Oxygen", false],
+            ["F", "Fluorine", false],
+            ["Ne", "Neon", false],
+            ["Na", "Sodium", false],
+            ["Mg", "Magnesium", false],
+            ["Al", "Aluminum", false],
+            ["Si", "Silicon", false],
+            ["P", "Phosphorus", false],
+            ["S", "Sulfur", false],
+            ["Cl", "Chlorine", false],
+            ["Ar", "Argon", false],
+            ["K", "Potassium", false],
+            ["Ca", "Calcium", false],
+            ["Sc", "Scandium", false],
+            ["Ti", "Titanium", false],
+            ["V", "Vanadium", false],
+            ["Cr", "Chromium", false],
+            ["Mn", "Manganese", false],
+            ["Fe", "Iron", false],
+            ["Co", "Cobalt", false],
+            ["Ni", "Nickel", false],
+            ["Cu", "Copper", false],
+            ["Zn", "Zinc", false],
+            ["Ga", "Gallium", false],
+            ["Ge", "Germanium", false],
+            ["As", "Arsenic", false],
+            ["Se", "Selenium", false],
+            ["Br", "Bromine", false],
+            ["Kr", "Krypton", false],
+            ["Rb", "Rubidium", false],
+            ["Sr", "Strontium", false],
+            ["Y", "Yttrium", false],
+            ["Zr", "Zirconium", false],
+            ["Nb", "Niobium", false],
+            ["Mo", "Molybdenum", false],
+            ["Tc", "Technetium", true],
+            ["Ru", "Ruthenium", false],
+            ["Rh", "Rhodium", false],
+            ["Pd", "Palladium", false],
+            ["Ag", "Silver", false],
+            ["Cd", "Cadmium", false],
+            ["In", "Indium", false],
+            ["Sn", "Tin", false],
+            ["Sb", "Antimony", false],
+            ["Te", "Tellurium", false],
+            ["I", "Iodine", false],
+            ["Xe", "Xenon", false],
+            ["Cs", "Cesium", false],
+            ["Ba", "Barium", false],
+            ["La", "Lanthanum", false],
+            ["Ce", "Cerium", false],
+            ["Pr", "Praseodymium", false],
+            ["Nd", "Neodymium", false],
+            ["Pm", "Promethium", true],
+            ["Sm", "Samarium", false],
+            ["Eu", "Europium", false],
+            ["Gd", "Gadolinium", false],
+            ["Tb", "Terbium", false],
+            ["Dy", "Dysprosium", false],
+            ["Ho", "Holmium", false],
+            ["Er", "Erbium", false],
+            ["Tm", "Thulium", false],
+            ["Yb", "Ytterbium", false],
+            ["Lu", "Lutetium", false],
+            ["Hf", "Hafnium", false],
+            ["Ta", "Tantalum", false],
+            ["W", "Tungsten", false],
+            ["Re", "Rhenium", false],
+            ["Os", "Osmium", false],
+            ["Ir", "Iridium", false],
+            ["Pt", "Platinum", false],
+            ["Au", "Gold", false],
+            ["Hg", "Mercury", false],
+            ["Tl", "Thallium", false],
+            ["Pb", "Lead", false],
+            ["Bi", "Bismuth", false],
+            ["Po", "Polonium", true],
+            ["At", "Astatine", true],
+            ["Rn", "Radon", true],
+            ["Fr", "Francium", true],
+            ["Ra", "Radium", true],
+            ["Ac", "Actinium", true],
+            ["Th", "Thorium", true],
+            ["Pa", "Protactinium", true],
+            ["U", "Uranium", true],
+            ["Np", "Neptunium", true],
             ["Pu", "Plutonium", true],
         ];
         const specs: ICompactMoleculeSpec[] = [];
@@ -9063,13 +9123,75 @@ export class MoleculeCatalog {
             );
         }
         const pool = [...MoleculeCatalog.buildFunctional()];
-        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "hydrogen"), "hydrogen-elemental", "Hydrogen", "elemental", ["element", "gas"]));
-        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "nitrogen"), "nitrogen-elemental", "Nitrogen", "elemental", ["element", "gas"]));
-        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "oxygen"), "oxygen-elemental", "Oxygen", "elemental", ["element", "gas"]));
-        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "fluorine"), "fluorine-elemental", "Fluorine", "elemental", ["element", "gas"]));
-        specs.push(MoleculeCatalog.cloneSpec(MoleculeCatalog.findSpec(pool, "chlorine"), "chlorine-elemental", "Chlorine", "elemental", ["element", "gas"]));
-        specs.push(MoleculeCatalog.make("bromine", "Bromine", "Br2", "BrBr", "elemental", ["element", "gas"], ["Br", "Br"], [[0, 1, 1]]));
-        specs.push(MoleculeCatalog.make("iodine", "Iodine", "I2", "II", "elemental", ["element", "gas"], ["I", "I"], [[0, 1, 1]]));
+        specs.push(
+            MoleculeCatalog.cloneSpec(
+                MoleculeCatalog.findSpec(pool, "hydrogen"),
+                "hydrogen-elemental",
+                "Hydrogen",
+                "elemental",
+                ["element", "gas"],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.cloneSpec(
+                MoleculeCatalog.findSpec(pool, "nitrogen"),
+                "nitrogen-elemental",
+                "Nitrogen",
+                "elemental",
+                ["element", "gas"],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.cloneSpec(
+                MoleculeCatalog.findSpec(pool, "oxygen"),
+                "oxygen-elemental",
+                "Oxygen",
+                "elemental",
+                ["element", "gas"],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.cloneSpec(
+                MoleculeCatalog.findSpec(pool, "fluorine"),
+                "fluorine-elemental",
+                "Fluorine",
+                "elemental",
+                ["element", "gas"],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.cloneSpec(
+                MoleculeCatalog.findSpec(pool, "chlorine"),
+                "chlorine-elemental",
+                "Chlorine",
+                "elemental",
+                ["element", "gas"],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.make(
+                "bromine",
+                "Bromine",
+                "Br2",
+                "BrBr",
+                "elemental",
+                ["element", "gas"],
+                ["Br", "Br"],
+                [[0, 1, 1]],
+            ),
+        );
+        specs.push(
+            MoleculeCatalog.make(
+                "iodine",
+                "Iodine",
+                "I2",
+                "II",
+                "elemental",
+                ["element", "gas"],
+                ["I", "I"],
+                [[0, 1, 1]],
+            ),
+        );
         return specs;
     }
 }

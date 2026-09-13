@@ -19,14 +19,19 @@ export interface IReactionSink {
 }
 
 export class ReactionEngine {
+    private static readonly VISUAL_COOLDOWN = 40;
     private readonly rules: ReadonlyArray<IReactionRule>;
     private readonly registry: IMoleculeRegistry;
     private readonly matchRadius: number;
+    private updates: number;
+    private readonly lastVisual: Map<string, number>;
 
     public constructor(rules: ReadonlyArray<IReactionRule>, registry: IMoleculeRegistry) {
         this.rules = rules;
         this.registry = registry;
         this.matchRadius = 7;
+        this.updates = 0;
+        this.lastVisual = new Map();
     }
 
     public getRules(): ReadonlyArray<IReactionRule> {
@@ -34,6 +39,7 @@ export class ReactionEngine {
     }
 
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
+        this.updates++;
         for (const rule of this.rules) {
             this.tryRule(rule, world, rng, sink);
         }
@@ -127,6 +133,31 @@ export class ReactionEngine {
         const rate = Math.exp(-rule.activationEnergy / (0.008314 * Math.max(50, temperature)));
         const boost = 1 + world.params.catalyst * 4 + world.params.spark * 9;
         if (rng.next() > Math.min(0.5, rate * boost * 8)) {
+            return;
+        }
+        if (rule.products.length === 0) {
+            const last = this.lastVisual.get(rule.id);
+            if (last !== undefined && this.updates - last < ReactionEngine.VISUAL_COOLDOWN) {
+                return;
+            }
+            this.lastVisual.set(rule.id, this.updates);
+            let vx = 0;
+            let vy = 0;
+            let vz = 0;
+            for (const inst of consumed) {
+                vx += inst.px;
+                vy += inst.py;
+                vz += inst.pz;
+            }
+            sink.publish({
+                ruleId: rule.id,
+                message: rule.message,
+                x: vx / consumed.length,
+                y: vy / consumed.length,
+                z: vz / consumed.length,
+                flash: rule.visual.flash,
+                particles: rule.visual.particles,
+            });
             return;
         }
         let cx = 0;

@@ -19,6 +19,7 @@ const TABS: Array<{ id: MoleculeCategory; label: string }> = [
     { id: "exotic", label: "Exotic" },
     { id: "biomolecules", label: "Bio" },
     { id: "natural", label: "Natural" },
+    { id: "elemental", label: "Elements" },
 ];
 
 export function TabsView(properties: { vm: AppViewModel }): JSX.Element {

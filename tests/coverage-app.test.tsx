@@ -200,9 +200,10 @@ describe("ThumbnailRenderer coverage", () => {
             const canvas = sizedCanvas(120, 90);
             vi.spyOn(canvas, "getContext").mockReturnValue(fakeContext());
             const record = makeRecord("benzene", {
-                atoms: [makeAtom("C", 0, 0), makeAtom("Xx", 2, 1)],
+                atoms: [makeAtom("C", 0, 0), makeAtom("Xx", 2, 1), makeAtom("Xx", 4, 0)],
                 bonds: [
                     { a: 0, b: 1, order: 1, aromatic: false, stereo: null },
+                    { a: 1, b: 2, order: 1, aromatic: false, stereo: null, ionic: true },
                     { a: 0, b: 9, order: 1, aromatic: false, stereo: null },
                 ],
             });

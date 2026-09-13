@@ -19,10 +19,11 @@ The left panel holds seventeen category tabs, from alkanes to the elemental tabl
 Open the **Elements** tab, then place loose atoms next to each other and watch real bonding:
 
 - Place a metal and a nonmetal close together and an ionic compound forms. Cerium plus three bromine atoms becomes CeBr3, cerium(III) bromide. Iron plus oxygen becomes Fe2O3, iron(III) oxide.
-- Two atoms of a diatomic former combine on contact: oxygen into O2, hydrogen into H2, iodine into I2.
+- Add oxygen and hydrogen and you get the polyatomic salts: sodium plus oxygen plus hydrogen is NaOH, sodium hydroxide; potassium plus nitrogen plus three oxygens is KNO3, potassium nitrate; calcium plus carbon plus three oxygens is CaCO3, calcium carbonate; two ammoniums plus a sulfate gives (NH4)2SO4, ammonium sulfate.
+- Two atoms of a diatomic former combine on contact: oxygen into O2, hydrogen into H2, iodine into I2. Eight sulfurs close into an S8 ring and four phosphorus atoms form the P4 tetrahedron.
 - Place a carbon, two oxygens, and hydrogen together to build carbon dioxide and water.
 
-Atoms are conserved. If the local cluster has the wrong ratio, nothing is invented and the log tells you what is missing, for example "Cerium(III) bromide needs 1 Ce and 3 Br per unit. Add more Br." The product appears as a new molecule instance you can inspect, drag, and react further. Synthesis runs on the same fixed-step clock as everything else, so heating a scene speeds it up.
+Atoms are conserved. If the local cluster has the wrong ratio, nothing is invented and the log tells you the limiting element, for example "Cerium(III) bromide needs 1 Ce and 3 Br per unit. Add more Br." Ionic salts and radical recombination happen on contact; molecular compounds like water and methane want about 250 K of heat, so a frozen chamber stays still until you warm it. The product appears as a new molecule instance you can inspect, drag, and react further. Synthesis runs on the same fixed-step clock as everything else, so heating a scene speeds it up.
 
 ## Sliders
 

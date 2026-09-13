@@ -1,10 +1,11 @@
 # Reactions
 
-Three engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
+Four engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
 
 1. **`ReactionEngine`** applies the fifteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
 2. **`SynthesisEngine`** predicts new compounds from loose atoms using `CompoundSynthesizer` and the `ElementChemistry` table.
 3. **`RedoxEngine`** swaps metals using the standard reduction potentials in `Thermochemistry`.
+4. **`OxidationEngine`** abstracts hydrogen from compounds with any electronegative diatomic.
 
 ## Rule engine
 
@@ -100,6 +101,19 @@ The synthesizer is a valence and electronegativity model with common oxidation s
 `RedoxEngine` handles single displacement. A free metal atom in contact with a salt of a less reducing metal is swapped for it when the cell potential from the standard reduction table is positive: zinc + copper chloride gives zinc chloride + copper (1.10 V), while the reverse does not fire. The engine also respects the chamber's atom budget.
 
 `SolventModel` supplies the continuum solvent: it computes ionic strength from the formal charges in the chamber and the chamber volume, then a Debye-Huckel activity coefficient that corrects the endothermic threshold. A salt-rich chamber is treated as a higher-ionic-strength medium.
+
+## Oxidation
+
+`OxidationEngine` reacts any homonuclear diatomic element that is more electronegative than hydrogen, all the way up to plutonium, with a hydrogen-bearing compound. It breaks the diatomic bond and a site hydrogen, forms a site-oxidizer bond and an H-X bond, picks the most exothermic site, and reports the computed enthalpy. Fluorine reacts on contact; chlorine, bromine, and iodine need heat; oxygen and nitrogen are held back by their activation barrier so combustion remains with the rule engine.
+
+| Reactants | Products       | Conditions                  |
+| --------- | -------------- | --------------------------- |
+| CH4 + F2  | CH3F + HF      | ambient                     |
+| C6H6 + F2 | C6H5F + HF     | ambient                     |
+| H2O + F2  | HOF + HF       | ambient                     |
+| CH4 + Cl2 | CH3Cl + HCl    | about 900 K                 |
+| CH4 + I2  | CH3I + HI      | about 1500 K                |
+| CH4 + O2  | no abstraction | combustion handled by rules |
 
 ## Adding a rule
 

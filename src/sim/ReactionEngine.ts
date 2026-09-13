@@ -12,6 +12,7 @@ export interface IReactionEvent {
     readonly z: number;
     readonly flash: string;
     readonly particles: string;
+    readonly deltaH?: number;
 }
 
 export interface IReactionSink {
@@ -195,6 +196,7 @@ export class ReactionEngine {
             z: cz,
             flash: rule.visual.flash,
             particles: rule.visual.particles,
+            deltaH: rule.deltaH,
         });
     }
 

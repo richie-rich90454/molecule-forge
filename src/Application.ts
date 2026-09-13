@@ -7,6 +7,7 @@ import { PresetCatalog } from "./presets/PresetCatalog";
 import { FramePacer } from "./render/FramePacer";
 import { Renderer } from "./render/Renderer";
 import { CoulombCalculator } from "./sim/CoulombCalculator";
+import { DecompositionEngine } from "./sim/DecompositionEngine";
 import { HydrogenBondCalculator } from "./sim/HydrogenBondCalculator";
 import { LennardJonesCalculator } from "./sim/LennardJonesCalculator";
 import { ReactionCatalog } from "./sim/ReactionCatalog";
@@ -30,6 +31,7 @@ export class Application implements IEffectSink {
     private readonly synthesis: SynthesisEngine;
     private readonly redox: RedoxEngine;
     private readonly oxidation: OxidationEngine;
+    private readonly decomposition: DecompositionEngine;
     private readonly sound: SoundEngine;
     private readonly vm: AppViewModel;
     private readonly simRng: SeededRandom;
@@ -72,6 +74,7 @@ export class Application implements IEffectSink {
         this.synthesis = new SynthesisEngine(this.registry, synthesizer);
         this.redox = new RedoxEngine(this.registry, synthesizer);
         this.oxidation = new OxidationEngine(this.registry, factory);
+        this.decomposition = new DecompositionEngine(factory);
         this.sound = new SoundEngine();
         this.vm = new AppViewModel(this.registry, this.world, this.sound, this);
         this.vm.initialize();
@@ -344,6 +347,7 @@ export class Application implements IEffectSink {
                         this.synthesis.update(this.world, this.simRng, this.vm);
                         this.redox.update(this.world, this.simRng, this.vm);
                         this.oxidation.update(this.world, this.simRng, this.vm);
+                        this.decomposition.update(this.world, this.simRng, this.vm);
                     }
                     budgeted--;
                     if (this.world.countAlive() === 0) {

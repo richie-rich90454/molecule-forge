@@ -200,7 +200,7 @@ describe("AppViewModelActions", () => {
         const { vm, world } = makeVm();
         expect(vm.getRegistry().getCount()).toBe(11);
         expect(vm.getWorld()).toBe(world);
-        expect(vm.getPresets().length).toBe(36);
+        expect(vm.getPresets().length).toBe(37);
         expect(vm.getSelectedId()).toBe("caffeine");
         expect(vm.getFilteredRecords().length).toBe(6);
     });
@@ -378,6 +378,16 @@ describe("AppViewModelActions", () => {
         world.clear();
         vm.spawnShowcase();
         expect(world.countAlive()).toBeGreaterThan(0);
+    });
+
+    it("starts from a truly empty preset", () => {
+        const { vm, world } = makeVm();
+        const empty = vm.getPresets().find((preset) => preset.id === "empty");
+        expect(empty?.spawns.length).toBe(0);
+        world.spawn(vm.getRegistry().findById("benzene") as IMoleculeRecord, 0, 0, 0, 0);
+        vm.applyPreset("empty");
+        expect(vm.getPresetId()).toBe("empty");
+        expect(world.countAlive()).toBe(0);
     });
 
     it("writes hashes and copies snapshots", async () => {

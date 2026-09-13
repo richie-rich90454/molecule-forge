@@ -13,9 +13,12 @@ export interface IWorldObserver {
 
 export class World {
     public static readonly MAX_LIVE_ATOMS = 200000;
+    private static readonly NONE: ReadonlySet<MoleculeInstance> = new Set<MoleculeInstance>();
 
     private readonly engine: PhysicsEngine;
     private readonly instances: Map<number, MoleculeInstance>;
+    private readonly byId: Map<string, Set<MoleculeInstance>>;
+    private readonly byCategory: Map<MoleculeCategory, Set<MoleculeInstance>>;
     private readonly observers: IWorldObserver[];
     private readonly spawnRng: SeededRandom;
     private liveAtoms: number;
@@ -28,6 +31,8 @@ export class World {
     public constructor(engine: PhysicsEngine, seed: number) {
         this.engine = engine;
         this.instances = new Map();
+        this.byId = new Map();
+        this.byCategory = new Map();
         this.observers = [];
         this.spawnRng = new SeededRandom(seed);
         this.liveAtoms = 0;
@@ -70,6 +75,18 @@ export class World {
         this.instances.set(instance.id, instance);
         this.instanceCache = null;
         this.liveAtoms += record.atoms.length;
+        let idSet = this.byId.get(record.id);
+        if (idSet === undefined) {
+            idSet = new Set();
+            this.byId.set(record.id, idSet);
+        }
+        idSet.add(instance);
+        let categorySet = this.byCategory.get(record.category);
+        if (categorySet === undefined) {
+            categorySet = new Set();
+            this.byCategory.set(record.category, categorySet);
+        }
+        categorySet.add(instance);
         for (const observer of this.observers) {
             observer.onSpawn(instance);
         }
@@ -89,6 +106,18 @@ export class World {
         if (instance !== undefined && this.instances.delete(id)) {
             this.instanceCache = null;
             this.liveAtoms = Math.max(0, this.liveAtoms - instance.record.atoms.length);
+            const idSet = this.byId.get(instance.record.id) as Set<MoleculeInstance>;
+            idSet.delete(instance);
+            if (idSet.size === 0) {
+                this.byId.delete(instance.record.id);
+            }
+            const categorySet = this.byCategory.get(
+                instance.record.category,
+            ) as Set<MoleculeInstance>;
+            categorySet.delete(instance);
+            if (categorySet.size === 0) {
+                this.byCategory.delete(instance.record.category);
+            }
             for (const observer of this.observers) {
                 observer.onRemove(id);
             }
@@ -97,6 +126,8 @@ export class World {
 
     public clear(): void {
         this.instances.clear();
+        this.byId.clear();
+        this.byCategory.clear();
         this.instanceCache = null;
         this.liveAtoms = 0;
         for (const observer of this.observers) {
@@ -125,20 +156,28 @@ export class World {
         return count;
     }
 
+    public getInstanceCount(): number {
+        return this.instances.size;
+    }
+
+    public isEmpty(): boolean {
+        return this.instances.size === 0;
+    }
+
     public findInstances(
         moleculeId: string,
         category: MoleculeCategory | null,
         limit: number,
     ): MoleculeInstance[] {
         const found: MoleculeInstance[] = [];
-        for (const inst of this.instances.values()) {
+        const source: Iterable<MoleculeInstance> =
+            moleculeId !== ""
+                ? (this.byId.get(moleculeId) ?? World.NONE)
+                : category !== null
+                  ? (this.byCategory.get(category) ?? World.NONE)
+                  : this.instances.values();
+        for (const inst of source) {
             if (!inst.alive) {
-                continue;
-            }
-            if (moleculeId !== "" && inst.record.id !== moleculeId) {
-                continue;
-            }
-            if (category !== null && inst.record.category !== category) {
                 continue;
             }
             found.push(inst);

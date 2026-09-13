@@ -157,6 +157,25 @@ describe("ForceCalculators", () => {
         expect(calc.computeMagnitude({ ...base, dist: 0 })).toBe(0);
         expect(calc.computeMagnitude({ ...base, dist: 9 })).toBe(0);
     });
+
+    it("reports each force range for pair culling", () => {
+        const body = (radius: number, charge: number, donors: number, acceptors: number) => ({
+            radius,
+            charge,
+            donors,
+            acceptors,
+        });
+        const lennardJones = new LennardJonesCalculator(2.2, 3);
+        expect(lennardJones.getRange(body(1, 0, 0, 0), body(1, 0, 0, 0))).toBeCloseTo(3);
+        const coulomb = new CoulombCalculator(60, 20);
+        expect(coulomb.getRange(body(1, 1, 0, 0), body(1, -1, 0, 0))).toBe(20);
+        expect(coulomb.getRange(body(1, 1, 0, 0), body(1, 0, 0, 0))).toBe(0);
+        expect(coulomb.getRange(body(1, 0, 0, 0), body(1, 0, 0, 0))).toBe(0);
+        const hydrogenBond = new HydrogenBondCalculator(3, 3.5);
+        expect(hydrogenBond.getRange(body(1, 0, 1, 0), body(1, 0, 0, 1))).toBe(3.5);
+        expect(hydrogenBond.getRange(body(1, 0, 1, 0), body(1, 0, 0, 0))).toBe(0);
+        expect(hydrogenBond.getRange(body(1, 0, 0, 0), body(1, 0, 0, 0))).toBe(0);
+    });
 });
 
 describe("MoleculeInstanceExtras", () => {

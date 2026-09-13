@@ -10,7 +10,7 @@ import type { IReactionRule } from "../src/sim/ReactionCatalog";
 import { ReactionEngine, type IReactionEvent } from "../src/sim/ReactionEngine";
 import { SeededRandom } from "../src/sim/SeededRandom";
 import { SimulationWorker } from "../src/sim/SimulationWorker";
-import { SpatialHashGrid } from "../src/sim/SpatialHashGrid";
+import { SpatialHashGrid, type IGridEntity } from "../src/sim/SpatialHashGrid";
 import { World } from "../src/sim/World";
 
 function methaneRecord(): IMoleculeRecord {
@@ -260,19 +260,10 @@ describe("PhysicsEngine coverage", () => {
 });
 
 describe("SpatialHashGrid coverage", () => {
-    it("skips entries with no recorded position", () => {
-        const grid = new SpatialHashGrid(6);
-        grid.insert(1, 0, 0, 0);
-        (grid as unknown as { positions: Map<number, number[]> }).positions.delete(1);
-        const out: number[] = [];
-        grid.queryRadius(0, 0, 0, 10, out);
-        expect(out.length).toBe(0);
-    });
-
     it("rejects a same-cell entry outside the radius", () => {
-        const grid = new SpatialHashGrid(6);
-        grid.insert(1, 11, 0, 0);
-        const out: number[] = [];
+        const grid = new SpatialHashGrid<IGridEntity>(6);
+        grid.insert({ id: 1, px: 11, py: 0, pz: 0 });
+        const out: IGridEntity[] = [];
         grid.queryRadius(0, 0, 0, 10, out);
         expect(out.length).toBe(0);
     });

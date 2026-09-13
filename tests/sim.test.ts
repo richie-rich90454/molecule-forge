@@ -306,6 +306,24 @@ describe("WorldExtras", () => {
         expect(world.findById(424242)).toBeUndefined();
     });
 
+    it("indexes instances by molecule id and prunes empty buckets", () => {
+        const world = makeWorld();
+        expect(world.isEmpty()).toBe(true);
+        const record = methaneRecord();
+        const first = world.spawn(record, 0, 0, 0, 0);
+        const second = world.spawn(record, 5, 0, 0, 0);
+        expect(world.isEmpty()).toBe(false);
+        expect(world.getInstanceCount()).toBe(2);
+        expect(world.findInstances(record.id, null, 10).length).toBe(2);
+        expect(world.findInstances("does-not-exist", null, 10).length).toBe(0);
+        world.remove(first.id);
+        expect(world.findInstances(record.id, null, 10).length).toBe(1);
+        world.remove(second.id);
+        expect(world.findInstances(record.id, null, 10).length).toBe(0);
+        expect(world.findInstances("", record.category, 10).length).toBe(0);
+        expect(world.isEmpty()).toBe(true);
+    });
+
     it("tracks the atom budget", () => {
         const world = makeWorld();
         expect(world.getLiveAtoms()).toBe(0);

@@ -1,21 +1,27 @@
 :root {
+    color-scheme: dark;
     --bg-deep: #050508;
-    --bg-outer: #0c0c16;
-    --panel: rgba(14, 16, 28, 0.92);
+    --bg-outer: #0b0d17;
+    --panel: #10131f;
     --panel-solid: #0e101c;
-    --line: rgba(172, 225, 175, 0.16);
+    --panel-2: #161b2e;
+    --card: #141828;
+    --active-fill: #1b2c22;
+    --line: #2a3049;
     --text: #e8ecf4;
     --text-dim: #9aa3b5;
     --accent: #ace1af;
-    --accent-dim: rgba(172, 225, 175, 0.35);
+    --accent-dim: #3f5a44;
     --warn: #ff6060;
-    --warn-dim: rgba(255, 96, 96, 0.35);
+    --warn-dim: #5a2b2e;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #2c3247 #0a0c14;
 }
 
 html,
@@ -27,7 +33,7 @@ body,
 }
 
 body {
-    background: radial-gradient(120% 90% at 50% 10%, var(--bg-outer) 0%, var(--bg-deep) 70%);
+    background: var(--bg-deep);
     color: var(--text);
     font-family: var(--sans);
     overflow: hidden;
@@ -65,7 +71,7 @@ body {
 }
 
 .mf-btn {
-    background: rgba(172, 225, 175, 0.08);
+    background: var(--panel-2);
     border: 1px solid var(--line);
     color: var(--text);
     border-radius: 8px;
@@ -79,18 +85,17 @@ body {
 
 .mf-btn:hover {
     border-color: var(--accent);
-    box-shadow: 0 0 12px var(--accent-dim);
+    background: #1a2136;
     color: var(--accent);
 }
 
 .mf-btn:disabled {
     opacity: 0.35;
     cursor: default;
-    box-shadow: none;
 }
 
 .mf-btn.mf-active {
-    background: rgba(172, 225, 175, 0.22);
+    background: var(--active-fill);
     color: var(--accent);
     border-color: var(--accent);
 }
@@ -101,7 +106,7 @@ body {
 
 .mf-btn.mf-danger:hover {
     border-color: var(--warn);
-    box-shadow: 0 0 12px var(--warn-dim);
+    background: #2b1518;
     color: var(--warn);
 }
 
@@ -152,7 +157,7 @@ body {
 .mf-tab.mf-active {
     color: var(--accent);
     border-color: var(--accent-dim);
-    background: rgba(172, 225, 175, 0.1);
+    background: var(--active-fill);
 }
 
 .mf-cards {
@@ -166,17 +171,19 @@ body {
 }
 
 .mf-card {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--card);
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 6px;
     cursor: pointer;
     text-align: center;
+    color: var(--text);
+    font-family: var(--sans);
 }
 
 .mf-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 0 14px var(--accent-dim);
+    background: #181e33;
 }
 
 .mf-card.mf-warn {
@@ -185,7 +192,7 @@ body {
 
 .mf-card.mf-warn:hover {
     border-color: var(--warn);
-    box-shadow: 0 0 14px var(--warn-dim);
+    background: #221418;
 }
 
 .mf-card canvas {
@@ -193,6 +200,7 @@ body {
     height: 74px;
     display: block;
     border-radius: 6px;
+    background: #0a0c14;
 }
 
 .mf-card-name {
@@ -233,6 +241,7 @@ body {
     flex: 1;
     position: relative;
     min-height: 0;
+    background: #07070f;
 }
 
 .mf-canvas-wrap canvas {
@@ -259,6 +268,10 @@ body {
     color: var(--text-dim);
     text-align: right;
     pointer-events: none;
+    background: var(--panel-solid);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 3px 8px;
 }
 
 .mf-hud b {
@@ -272,7 +285,7 @@ body {
     left: 12px;
     display: flex;
     gap: 0;
-    background: var(--panel);
+    background: var(--panel-solid);
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 3px;
@@ -301,7 +314,7 @@ body {
 }
 
 .mf-tool.mf-active {
-    background: rgba(172, 225, 175, 0.18);
+    background: var(--active-fill);
     color: var(--accent);
     border-color: var(--accent-dim);
 }
@@ -378,7 +391,7 @@ body {
 
 .mf-footer {
     border-top: 1px solid var(--line);
-    background: rgba(5, 5, 8, 0.94);
+    background: #08080d;
     padding: 6px 14px;
     z-index: 4;
 }
@@ -393,6 +406,8 @@ body {
     padding: 0;
     cursor: pointer;
     font-family: var(--sans);
+    color: var(--text);
+    text-align: left;
 }
 
 .mf-log-title {
@@ -469,7 +484,7 @@ body {
 }
 
 .mf-presets select {
-    background: var(--panel-solid);
+    background: var(--panel-2);
     color: var(--text);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -478,6 +493,11 @@ body {
     letter-spacing: 0.08em;
     font-family: var(--sans);
     max-width: 240px;
+}
+
+.mf-presets select option {
+    background: var(--panel-solid);
+    color: var(--text);
 }
 
 @media (max-width: 900px) {

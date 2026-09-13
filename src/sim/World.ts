@@ -12,10 +12,13 @@ export interface IWorldObserver {
 }
 
 export class World {
+    public static readonly MAX_LIVE_ATOMS = 200000;
+
     private readonly engine: PhysicsEngine;
     private readonly instances: Map<number, MoleculeInstance>;
     private readonly observers: IWorldObserver[];
     private readonly spawnRng: SeededRandom;
+    private liveAtoms: number;
     public params: ISimParams;
     public boxSize: number;
     public targetBoxSize: number;
@@ -26,6 +29,7 @@ export class World {
         this.instances = new Map();
         this.observers = [];
         this.spawnRng = new SeededRandom(seed);
+        this.liveAtoms = 0;
         this.params = SimParamsFactory.createDefault();
         this.boxSize = 60;
         this.targetBoxSize = 60;
@@ -62,14 +66,25 @@ export class World {
         instance.avy = (this.spawnRng.next() - 0.5) * 2;
         instance.avz = (this.spawnRng.next() - 0.5) * 2;
         this.instances.set(instance.id, instance);
+        this.liveAtoms += record.atoms.length;
         for (const observer of this.observers) {
             observer.onSpawn(instance);
         }
         return instance;
     }
 
+    public canAccommodate(atomCount: number): boolean {
+        return this.liveAtoms + atomCount <= World.MAX_LIVE_ATOMS;
+    }
+
+    public getLiveAtoms(): number {
+        return this.liveAtoms;
+    }
+
     public remove(id: number): void {
-        if (this.instances.delete(id)) {
+        const instance = this.instances.get(id);
+        if (instance !== undefined && this.instances.delete(id)) {
+            this.liveAtoms = Math.max(0, this.liveAtoms - instance.record.atoms.length);
             for (const observer of this.observers) {
                 observer.onRemove(id);
             }
@@ -78,6 +93,7 @@ export class World {
 
     public clear(): void {
         this.instances.clear();
+        this.liveAtoms = 0;
         for (const observer of this.observers) {
             observer.onClear();
         }

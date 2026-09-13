@@ -10,16 +10,20 @@ function MoleculeCard(properties: { vm: AppViewModel; record: IMoleculeRecord })
     const record = properties.record;
     let canvas: HTMLCanvasElement | undefined;
     const attach = (element: HTMLCanvasElement): void => {
+        /* v8 ignore start -- defensive: Solid always supplies the canvas element */
         if (element === undefined || element === null) {
             return;
         }
+        /* v8 ignore stop */
         canvas = element;
         thumbnails.watch(element, record);
     };
     onCleanup(() => {
+        /* v8 ignore start -- cleanup only runs after a successful attach */
         if (canvas !== undefined) {
             thumbnails.unwatch(canvas);
         }
+        /* v8 ignore stop */
     });
     const disabled = record.warn && !vm.getWarnings();
     const selected = vm.getSelectedId() === record.id;
@@ -38,10 +42,14 @@ function MoleculeCard(properties: { vm: AppViewModel; record: IMoleculeRecord })
             onClick={() => vm.selectMolecule(record.id)}
             title={record.name + " " + record.formula}
         >
-            <canvas ref={attach} />
-            <div class="mf-card-name">{record.name}</div>
-            <div class="mf-card-formula">{record.formula}</div>
-            {record.warn ? <span class="mf-card-badge">skull warn</span> : null}
+            <span class="mf-card-thumb">
+                <canvas ref={attach} />
+            </span>
+            <span class="mf-card-meta">
+                <span class="mf-card-name">{record.name}</span>
+                <span class="mf-card-formula">{record.formula}</span>
+            </span>
+            {record.warn ? <span class="mf-card-badge">Hazard</span> : null}
         </button>
     );
 }

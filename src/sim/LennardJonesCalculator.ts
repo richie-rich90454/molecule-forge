@@ -1,4 +1,4 @@
-import type { IForceCalculator, IPairInput } from "./IForceCalculator";
+import type { IForceCalculator, IPairBody, IPairInput } from "./IForceCalculator";
 
 export class LennardJonesCalculator implements IForceCalculator {
     private readonly epsilon: number;
@@ -11,6 +11,10 @@ export class LennardJonesCalculator implements IForceCalculator {
 
     public getName(): string {
         return "LennardJones";
+    }
+
+    public getRange(a: IPairBody, b: IPairBody): number {
+        return (a.radius + b.radius) * 0.5 * this.cutoffScale;
     }
 
     public computeMagnitude(input: IPairInput): number {

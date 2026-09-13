@@ -55,7 +55,7 @@ export class PresetCatalog {
                 seed: 1102,
                 spawns: [
                     { moleculeId: "alkane-c8", count: 6 },
-                    { moleculeId: "oxygen", count: 16 },
+                    { moleculeId: "oxygen", count: 90 },
                 ],
                 conditions: { temperature: 750 },
             },

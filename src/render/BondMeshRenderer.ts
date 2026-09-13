@@ -9,7 +9,10 @@ export interface IRenderBond {
     readonly bz: number;
     readonly order: number;
     readonly aromatic: boolean;
+    readonly ionic?: boolean;
 }
+
+const IONIC_DASHES = 4;
 
 export class BondMeshRenderer {
     private readonly scene: THREE.Scene;
@@ -38,7 +41,8 @@ export class BondMeshRenderer {
         const buckets = new Map<string, IRenderBond[]>();
         for (let i = 0; i < bonds.length; i += stride) {
             const bond = bonds[i];
-            const key = bond.aromatic ? "aromatic" : "order" + bond.order;
+            const key =
+                bond.ionic === true ? "ionic" : bond.aromatic ? "aromatic" : "order" + bond.order;
             const list = buckets.get(key);
             if (list === undefined) {
                 buckets.set(key, [bond]);
@@ -49,13 +53,21 @@ export class BondMeshRenderer {
         const seen = new Set<string>();
         for (const [key, list] of buckets) {
             seen.add(key);
-            const linesPerBond =
-                key === "order1" ? 1 : key === "aromatic" ? 2 : key === "order2" ? 2 : 3;
+            const dashed = key === "ionic";
+            const linesPerBond = dashed
+                ? IONIC_DASHES
+                : key === "order1"
+                  ? 1
+                  : key === "aromatic"
+                    ? 2
+                    : key === "order2"
+                      ? 2
+                      : 3;
             this.ensureMesh(key, list.length * linesPerBond);
             const mesh = this.meshes.get(key) as THREE.InstancedMesh;
             let slot = 0;
             for (const bond of list) {
-                slot = this.writeBond(mesh, slot, bond, linesPerBond);
+                slot = this.writeBond(mesh, slot, bond, linesPerBond, dashed);
             }
             mesh.count = slot;
             mesh.instanceMatrix.needsUpdate = true;
@@ -94,11 +106,12 @@ export class BondMeshRenderer {
             (existing.material as THREE.Material).dispose();
         }
         const geometry = new THREE.CylinderGeometry(1, 1, 1, 6, 1, true);
+        const ionic = key === "ionic";
         const material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color("#bcd2ff"),
+            color: new THREE.Color(ionic ? "#cbb6ff" : "#bcd2ff"),
             roughness: 0.5,
             metalness: 0.05,
-            emissive: new THREE.Color("#223355"),
+            emissive: new THREE.Color(ionic ? "#2b2450" : "#223355"),
             emissiveIntensity: 0.4,
         });
         const mesh = new THREE.InstancedMesh(geometry, material, Math.max(64, capacity * 2));
@@ -113,6 +126,7 @@ export class BondMeshRenderer {
         slot: number,
         bond: IRenderBond,
         lines: number,
+        dashed: boolean,
     ): number {
         this.dir.set(bond.bx - bond.ax, bond.by - bond.ay, bond.bz - bond.az);
         const length = this.dir.length();
@@ -120,6 +134,23 @@ export class BondMeshRenderer {
             return slot;
         }
         this.dir.multiplyScalar(1 / length);
+        if (dashed) {
+            const dashLength = (length / lines) * 0.55;
+            for (let i = 0; i < lines; i++) {
+                const t = ((i + 0.5) / lines) * length;
+                this.position.set(
+                    bond.ax + this.dir.x * t,
+                    bond.ay + this.dir.y * t,
+                    bond.az + this.dir.z * t,
+                );
+                this.quaternion.setFromUnitVectors(this.up, this.dir);
+                this.scale.set(0.075, dashLength, 0.075);
+                this.matrix.compose(this.position, this.quaternion, this.scale);
+                mesh.setMatrixAt(slot, this.matrix);
+                slot++;
+            }
+            return slot;
+        }
         this.side.crossVectors(this.dir, this.up);
         if (this.side.lengthSq() < 1e-6) {
             this.side.set(1, 0, 0);

@@ -15,8 +15,8 @@ describe("MoleculeLibrary", () => {
         expect(registry.getCount()).toBeGreaterThanOrEqual(300);
     });
 
-    it("covers all sixteen categories", () => {
-        expect(registry.getCategories().length).toBe(16);
+    it("covers all seventeen categories", () => {
+        expect(registry.getCategories().length).toBe(17);
     });
 
     it("validates every molecule record", () => {

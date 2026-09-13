@@ -2,12 +2,12 @@ import * as THREE from "three";
 import { ElementRegistry } from "../chem/ElementRegistry";
 
 export interface IRenderAtom {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly radius: number;
-    readonly element: string;
-    readonly glow: number;
+    x: number;
+    y: number;
+    z: number;
+    radius: number;
+    element: string;
+    glow: number;
 }
 
 class ElementMesh {

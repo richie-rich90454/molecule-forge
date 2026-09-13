@@ -58,9 +58,11 @@ impl World {
         for body in self.bodies.iter_mut().filter(|b| b.alive) {
             for axis in 0..3 {
                 body.velocity[axis] = (body.velocity[axis] + body.accel[axis] * dt) * drag;
-                body.position[axis] += body.velocity[axis] * dt;
             }
             body.velocity[1] += gravity * dt;
+            for axis in 0..3 {
+                body.position[axis] += body.velocity[axis] * dt;
+            }
             for axis in 0..3 {
                 if body.position[axis] > half {
                     body.position[axis] = half;
@@ -79,5 +81,37 @@ impl World {
 impl Default for World {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::World;
+
+    #[test]
+    fn spawn_remove_and_len() {
+        let mut world = World::new();
+        assert_eq!(world.len(), 0);
+        let id = world.spawn(0.0, 0.0, 0.0, 2.0, 16.0);
+        assert_eq!(world.len(), 1);
+        world.remove(id);
+        assert_eq!(world.len(), 0);
+    }
+
+    #[test]
+    fn integrate_moves_bodies() {
+        let mut world = World::new();
+        world.spawn(0.0, 0.0, 0.0, 2.0, 16.0);
+        world.bodies[0].velocity = [10.0, 0.0, 0.0];
+        world.integrate(0.1, 0.0, 1.0);
+        assert!(world.bodies[0].position[0] > 0.9);
+    }
+
+    #[test]
+    fn walls_confine_bodies() {
+        let mut world = World::new();
+        world.spawn(1000.0, 0.0, 0.0, 2.0, 16.0);
+        world.integrate(0.1, 0.0, 1.0);
+        assert!(world.bodies[0].position[0].abs() <= world.box_size * 0.5 + 1e-9);
     }
 }

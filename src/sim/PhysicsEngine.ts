@@ -105,6 +105,11 @@ export class PhysicsEngine {
                 for (const calc of this.calculators) {
                     total += calc.computeMagnitude(input);
                 }
+                if (total > 4000) {
+                    total = 4000;
+                } else if (total < -4000) {
+                    total = -4000;
+                }
                 const scale = total / dist;
                 const fx = dx * scale;
                 const fy = dy * scale;
@@ -133,6 +138,28 @@ export class PhysicsEngine {
             inst.vx = (inst.vx + inst.ax * dt * 0.5) * drag;
             inst.vy = (inst.vy + inst.ay * dt * 0.5) * drag;
             inst.vz = (inst.vz + inst.az * dt * 0.5) * drag;
+            const speedSq = inst.vx * inst.vx + inst.vy * inst.vy + inst.vz * inst.vz;
+            if (speedSq > 14400) {
+                const slow = 120 / (Math.sqrt(speedSq) + 1e-9);
+                inst.vx *= slow;
+                inst.vy *= slow;
+                inst.vz *= slow;
+            }
+            if (
+                !Number.isFinite(inst.px + inst.py + inst.pz + inst.vx + inst.vy + inst.vz) ||
+                !Number.isFinite(inst.qw + inst.qx + inst.qy + inst.qz)
+            ) {
+                inst.px = 0;
+                inst.py = 0;
+                inst.pz = 0;
+                inst.vx = 0;
+                inst.vy = 0;
+                inst.vz = 0;
+                inst.qx = 0;
+                inst.qy = 0;
+                inst.qz = 0;
+                inst.qw = 1;
+            }
             const half = world.boxSize * 0.5;
             if (inst.px > half) {
                 inst.px = half;

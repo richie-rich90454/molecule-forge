@@ -1,6 +1,6 @@
 import type { IMoleculeRecord, IMoleculeRegistry } from "../chem/MoleculeRecord";
 import { CompoundSynthesizer, type ISynthesisProduct } from "../chem/CompoundSynthesizer";
-import { SolventModel } from "../chem/SolventModel";
+import { ReactionGate } from "./ReactionGate";
 import type { SeededRandom } from "./SeededRandom";
 import type { World } from "./World";
 import type { MoleculeInstance } from "./MoleculeInstance";
@@ -119,7 +119,7 @@ export class SynthesisEngine {
         }
         const prediction = this.synthesizer.predict({ totals, monatomic });
         if (prediction.product !== null) {
-            if (!this.conditionsAllow(prediction.product, world)) {
+            if (!ReactionGate.allow(prediction.product.enthalpy, prediction.product.kind, world)) {
                 this.emitHint(prediction.product.name + " needs more heat to form.", cluster, sink);
                 return;
             }
@@ -131,34 +131,6 @@ export class SynthesisEngine {
             return;
         }
         this.lastHint = null;
-    }
-
-    private conditionsAllow(product: ISynthesisProduct, world: World): boolean {
-        const temperature = world.params.temperature;
-        if (temperature <= 5) {
-            return false;
-        }
-        if (product.kind === "covalent" && temperature < 250 && world.params.spark <= 0.05) {
-            return false;
-        }
-        if (product.enthalpy === null) {
-            return true;
-        }
-        const charges: number[] = [];
-        for (const inst of world.getInstanceList()) {
-            for (const atom of inst.record.atoms) {
-                if (atom.charge !== 0) {
-                    charges.push(atom.charge);
-                }
-            }
-        }
-        const activity = SolventModel.activity(
-            1,
-            charges,
-            world.boxSize * world.boxSize * world.boxSize,
-        );
-        const effective = product.enthalpy / Math.max(0.2, activity);
-        return !(effective > 100 && temperature < 800 && world.params.spark <= 0.05);
     }
 
     private emitHint(

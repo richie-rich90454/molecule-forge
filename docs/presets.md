@@ -1,9 +1,10 @@
 # Preset scenarios
 
-Thirty-six scenarios ship in `src/presets/PresetCatalog.ts`. Each fixes a seed, a spawn list with counts, and condition overrides. Applying a preset clears the chamber, so scenes reproduce exactly.
+Thirty-seven scenarios ship in `src/presets/PresetCatalog.ts`. Each fixes a seed, a spawn list with counts, and condition overrides. Applying a preset clears the chamber, so scenes reproduce exactly.
 
 | Preset | Contents | Conditions |
 | --- | --- | --- |
+| Empty Chamber | nothing | 298 K |
 | Primordial Soup | glycine, alanine, water, ammonia | 900 K, catalyst |
 | Combustion Chamber | octane, oxygen | 750 K |
 | Polymer Factory | styrene | 340 K, catalyst |

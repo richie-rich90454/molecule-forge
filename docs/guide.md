@@ -53,6 +53,20 @@ Bonds, Charges, Orbitals, Arrows, Grid, Graph, Slow motion, Bloom, Sound (off by
 
 Thirty-seven scenarios ship with fixed seeds, so Combustion Chamber today is Combustion Chamber tomorrow. Empty Chamber starts from a clean vacuum when you want to build a scene yourself. The seed button rerolls the seed used by paint jitter, detonation scatter, synthesis jitter, and reaction rolls. Every preset writes its state into the address bar hash.
 
+## Analyze panel
+
+The left panel switches between **Molecules** and **Analyze**. Analyze is a read-only instrument cluster over the live chamber:
+
+- **Chamber**: molecule count, net charge, and the running net enthalpy from every reaction that carries a known ΔH, labeled released (exothermic) or absorbed (endothermic).
+- **Composition**: every molecule species present, with formula and count, most abundant first.
+- **Atoms**: the full atom inventory by element, so conservation is visible at a glance.
+- **Trends**: sparklines of temperature, molecule count, and cumulative energy, sampled twice per simulated second.
+- **Reaction rate**: how often each reaction rule fired over the last ten simulated seconds.
+- **Energy diagram**: pick any rule and see its activation energy and net ΔH drawn as a reaction-coordinate path.
+- **Cell potentials**: standard reduction-potential differences for the metals present, strongest pair first.
+
+Nothing here writes state; it only observes, so it stays a pure static page.
+
 ## Atom budget
 
 The chamber holds at most 2500 molecules and 200000 atoms. Giant structures like DNA duplexes and insulin consume budget fast. When the budget fills, spawning refuses with a log line instead of crashing the tab. Clear or erase to make room. Synthesis respects the same budget: it will not consume reactants if the products would overflow the chamber.

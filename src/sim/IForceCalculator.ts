@@ -41,8 +41,6 @@ export type MutablePairInput = {
 };
 
 export class SimParamsFactory {
-    private constructor() {}
-
     public static createDefault(): ISimParams {
         return {
             temperature: 298,

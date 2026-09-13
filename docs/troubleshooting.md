@@ -22,7 +22,11 @@ Spark arms ignition and adds 150 K. Far below 700 K with no fuel nearby, there i
 
 ## Atoms sit next to each other and never react
 
-Synthesis is stoichiometric, not magnetic. Place enough of each element within a few angstroms. A single cerium atom needs three bromine atoms before CeBr3 can form, and the log says so: "Cerium(III) bromide needs 1 Ce and 3 Br per unit." Two bromine atoms alone make Br2 instead. Helium, neon, and argon never bond; xenon, krypton, and radon need fluorine. Once the ratio is right, the compound forms within a few simulation ticks; raise the temperature or the Speed slider to hurry it along. Charges and the reaction log make it easy to confirm a compound formed.
+Synthesis is stoichiometric, not magnetic. Place enough of each element within a few angstroms. A single cerium atom needs three bromine atoms before CeBr3 can form, and the log says so: "Cerium(III) bromide needs 1 Ce and 3 Br per unit." Two bromine atoms alone make Br2 instead. For salts, supply the atoms of the complex ion too: sodium plus oxygen plus hydrogen makes NaOH, while sodium plus oxygen alone makes Na2O. Molecular compounds such as water need about 250 K, so warm a frozen chamber before expecting them; ionic salts bond cold. Helium, neon, and argon never bond; xenon, krypton, and radon need fluorine. Once the ratio and temperature are right, the compound forms within a few simulation ticks; raise the Speed slider to hurry it along. Charges and the reaction log make it easy to confirm a compound formed.
+
+## A salt looks like a loose cluster
+
+Ionic solids are drawn as discrete bonded clusters, one instance per formula unit, spaced apart rather than arranged as an infinite lattice. That is a deliberate molecular-sandbox approximation, not a rendering bug.
 
 ## A synthesized compound cannot be restored from a snapshot
 

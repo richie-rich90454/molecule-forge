@@ -1,11 +1,12 @@
 # Reactions
 
-Four engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
+Five engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
 
-1. **`ReactionEngine`** applies the fifteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
+1. **`ReactionEngine`** applies the fourteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
 2. **`SynthesisEngine`** predicts new compounds from loose atoms using `CompoundSynthesizer` and the `ElementChemistry` table.
 3. **`RedoxEngine`** swaps metals using the standard reduction potentials in `Thermochemistry`.
-4. **`OxidationEngine`** abstracts hydrogen from compounds with any electronegative diatomic.
+4. **`OxidationEngine`** halogenates hydrogen-bearing compounds and burns any fuel in oxygen.
+5. **`DecompositionEngine`** cracks large organic molecules by pyrolysis when hot.
 
 ## Rule engine
 
@@ -13,14 +14,13 @@ Four engines run in the fixed-step loop, all publishing the same event type so t
 
 ### Combustion
 
-| Rule               | Reaction                                           | Needs |
-| ------------------ | -------------------------------------------------- | ----- |
-| combustion-methane | CH4 + 2 O2 into CO2 + 2 H2O, deltaH -890           | 700 K |
-| combustion-ethene  | C2H4 + 3 O2 into 2 CO2 + 2 H2O, deltaH -1411       | 700 K |
-| combustion-benzene | 2 C6H6 + 15 O2 into 12 CO2 + 6 H2O, deltaH -3268   | 750 K |
-| combustion-generic | any alkane + 2 O2 into 2 CO2 + 3 H2O, deltaH -1200 | 700 K |
+| Rule               | Reaction                                     | Needs |
+| ------------------ | -------------------------------------------- | ----- |
+| combustion-methane | CH4 + 2 O2 into CO2 + 2 H2O, deltaH -890     | 700 K |
+| combustion-ethene  | C2H4 + 3 O2 into 2 CO2 + 2 H2O, deltaH -1411 | 700 K |
+| combustion-benzene | 2 C6H6 + 15 O2 into 12 CO2 + 6 H2O, deltaH -3268 | 750 K |
 
-Detonate and Spark exist precisely so fuel air mixes ignite: Detonate arms the spark flag and heats the chamber to at least 950 K, and Spark adds a 150 K pulse on top of its flag.
+These three are showcase rules. Everything else burns through the general combustion solver in `OxidationEngine`, which derives the balanced equation from the fuel's own atoms, so no hydrocarbon is special-cased and no atom is invented or lost. Detonate and Spark exist precisely so fuel air mixes ignite: Detonate arms the spark flag and heats the chamber to at least 950 K, and Spark adds a 150 K pulse on top of its flag.
 
 ### Building up
 
@@ -102,18 +102,28 @@ The synthesizer is a valence and electronegativity model with common oxidation s
 
 `SolventModel` supplies the continuum solvent: it computes ionic strength from the formal charges in the chamber and the chamber volume, then a Debye-Huckel activity coefficient that corrects the endothermic threshold. A salt-rich chamber is treated as a higher-ionic-strength medium.
 
-## Oxidation
+## Oxidation and combustion
 
-`OxidationEngine` reacts any homonuclear diatomic element that is more electronegative than hydrogen, all the way up to plutonium, with a hydrogen-bearing compound. It breaks the diatomic bond and a site hydrogen, forms a site-oxidizer bond and an H-X bond, picks the most exothermic site, and reports the computed enthalpy. Fluorine reacts on contact; chlorine, bromine, and iodine need heat; oxygen and nitrogen are held back by their activation barrier so combustion remains with the rule engine.
+`OxidationEngine` has two modes, chosen by the diatomic reagent.
 
-| Reactants | Products       | Conditions                  |
-| --------- | -------------- | --------------------------- |
-| CH4 + F2  | CH3F + HF      | ambient                     |
-| C6H6 + F2 | C6H5F + HF     | ambient                     |
-| H2O + F2  | HOF + HF       | ambient                     |
-| CH4 + Cl2 | CH3Cl + HCl    | about 900 K                 |
-| CH4 + I2  | CH3I + HI      | about 1500 K                |
-| CH4 + O2  | no abstraction | combustion handled by rules |
+**Halogenation.** A halogen molecule (F2, Cl2, Br2, I2, At2) abstracts a hydrogen from a nearby hydrogen-bearing compound: it breaks the halogen bond and a site hydrogen, forms a site-halogen bond and an H-X bond, picks the most exothermic site, preserves formal charges and aromaticity, and reports the computed enthalpy. Fluorine reacts on contact; chlorine, bromine, and iodine need thermal activation from an Evans-Polanyi barrier. Only valence-one halogens take this path, so no atom is ever created by filling an implicit valence.
+
+**Combustion.** Dioxygen burns any fuel it can reach. From the fuel's own atom counts it derives the balanced equation `CxHyOzNwSv + n O2 -> a CO2 + b H2O + c SO2 + d N2`, consuming a whole number of fuel and oxygen molecules so atoms are conserved exactly. It fires once the chamber is hot (about 700 K) or sparked, and it works for methane, octane, ethanol, glucose, hydrogen sulfide, ammonia, and hydrogen. Nitrogen gas is inert because its bonded energy is too high, matching reality.
+
+| Reactants       | Products                     | Conditions  |
+| --------------- | ---------------------------- | ----------- |
+| CH4 + F2        | CH3F + HF                    | ambient     |
+| C6H6 + F2       | C6H5F + HF                   | ambient     |
+| H2O + F2        | HOF + HF                     | ambient     |
+| CH4 + Cl2       | CH3Cl + HCl                  | about 900 K |
+| CH4 + I2        | CH3I + HI                    | about 1500 K |
+| CH4 + 2 O2      | CO2 + 2 H2O                  | about 700 K |
+| C8H18 + 25/2 O2 | 8 CO2 + 9 H2O (2 fuels)      | about 700 K |
+| 2 CO + O2       | 2 CO2                        | about 700 K |
+
+## Cracking
+
+`DecompositionEngine` models pyrolysis. Above about 1200 K, an organic molecule with at least six heavy atoms splits at its most balanced bond into two fragments, each rebuilt as a valid molecule with every atom conserved. Rings have no bridge to break and stay intact, and small molecules are left alone. The fragments can then react further, so a polymer or protein placed in a hot chamber visibly disintegrates instead of sitting inert.
 
 ## Adding a rule
 

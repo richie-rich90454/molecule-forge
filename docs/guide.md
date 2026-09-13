@@ -51,7 +51,7 @@ Bonds, Charges, Orbitals, Arrows, Grid, Graph, Slow motion, Bloom, Sound (off by
 
 ## Presets and seeds
 
-Thirty-six scenarios ship with fixed seeds, so Combustion Chamber today is Combustion Chamber tomorrow. The seed button rerolls the seed used by paint jitter, detonation scatter, synthesis jitter, and reaction rolls. Every preset writes its state into the address bar hash.
+Thirty-seven scenarios ship with fixed seeds, so Combustion Chamber today is Combustion Chamber tomorrow. Empty Chamber starts from a clean vacuum when you want to build a scene yourself. The seed button rerolls the seed used by paint jitter, detonation scatter, synthesis jitter, and reaction rolls. Every preset writes its state into the address bar hash.
 
 ## Atom budget
 

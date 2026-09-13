@@ -409,6 +409,7 @@ export class OxidationEngine {
             z: cz,
             flash: "#b6f0ff",
             particles: "puff",
+            deltaH: substitution.enthalpy,
         });
     }
 

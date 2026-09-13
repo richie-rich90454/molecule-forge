@@ -265,6 +265,29 @@ describe("OxidationEngine combustion", () => {
         expect(tracker.events[0].message).toContain("1 CH4 + 2 O2 -> 1 CO2 + 2 H2O");
     });
 
+    it("draws a flame front from a local ignition contact", () => {
+        const registry = makeRegistry();
+        const engine = new OxidationEngine(registry, new MoleculeFactory());
+        const world = makeWorld(800);
+        world.spawn(record(registry, "alkane-c1"), 0, 0, 0, 0);
+        world.spawn(record(registry, "oxygen"), 40, 0, 0, 0);
+        world.spawn(record(registry, "oxygen"), 41, 0, 0, 0);
+        engine.update(world, new SeededRandom(1), makeSink().sink);
+        expect(world.getInstanceList().some((inst) => inst.record.formula === "CO2")).toBe(false);
+
+        const spread = makeWorld(800);
+        spread.spawn(record(registry, "alkane-c8"), 0, 0, 0, 0);
+        spread.spawn(record(registry, "alkane-c8"), 0.5, 0, 0, 0);
+        spread.spawn(record(registry, "oxygen"), 1, 0, 0, 0);
+        for (let i = 0; i < 24; i++) {
+            spread.spawn(record(registry, "oxygen"), 20 + (i % 6), Math.floor(i / 6), 0, 0);
+        }
+        engine.update(spread, new SeededRandom(1), makeSink().sink);
+        expect(
+            spread.getInstanceList().filter((inst) => inst.record.formula === "CO2").length,
+        ).toBe(16);
+    });
+
     it("balances a liquid fuel and a large hydrocarbon", () => {
         const registry = makeRegistry();
         const engine = new OxidationEngine(registry, new MoleculeFactory());

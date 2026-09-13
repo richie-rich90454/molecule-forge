@@ -202,4 +202,24 @@ describe("ReactionEngine", () => {
         }
         expect(totals).toEqual({ C: 14, H: 10, N: 6, O: 12 });
     });
+
+    it("detonates spread-out charges once the spark is armed", () => {
+        const world = makeWorld();
+        world.params.temperature = 900;
+        world.params.spark = 1;
+        const tnt = registry.findById("tnt");
+        if (tnt === undefined) {
+            throw new Error("missing TNT");
+        }
+        world.spawn(tnt, 0, 0, 0, 0);
+        world.spawn(tnt, 40, 0, 0, 0);
+        const sink = new CollectingSink();
+        const engine = makeEngine();
+        const rng = new SeededRandom(5);
+        for (let i = 0; i < 400 && sink.events.length === 0; i++) {
+            engine.update(world, rng, sink);
+        }
+        expect(sink.events[0].ruleId).toBe("detonation-tnt");
+        expect(world.getInstanceList().some((inst) => inst.record.id === "nitrogen")).toBe(true);
+    });
 });

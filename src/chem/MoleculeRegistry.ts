@@ -1,54 +1,75 @@
 import { MoleculeCatalog } from "./MoleculeCatalog";
 import { MoleculeFactory } from "./MoleculeFactory";
-import type { IMoleculeRecord, IMoleculeRegistry, MoleculeCategory } from "./MoleculeRecord";
+import type {
+    ICompactMoleculeSpec,
+    IMoleculeRecord,
+    IMoleculeRegistry,
+    MoleculeCategory,
+} from "./MoleculeRecord";
 
 export class MoleculeRegistry implements IMoleculeRegistry {
-    private readonly records: IMoleculeRecord[];
-    private readonly byId: Map<string, IMoleculeRecord>;
-    private readonly byCategory: Map<MoleculeCategory, IMoleculeRecord[]>;
+    private readonly factory: MoleculeFactory;
+    private readonly specs: ReadonlyArray<ICompactMoleculeSpec>;
+    private readonly specsById: Map<string, ICompactMoleculeSpec>;
+    private readonly specsByCategory: Map<MoleculeCategory, ICompactMoleculeSpec[]>;
+    private readonly cache: Map<string, IMoleculeRecord>;
 
     public constructor(factory: MoleculeFactory) {
-        this.records = [];
-        this.byId = new Map();
-        this.byCategory = new Map();
-        const specs = MoleculeCatalog.buildCompactSpecs();
-        for (const spec of specs) {
-            const record = factory.build(spec);
-            this.records.push(record);
-            this.byId.set(record.id, record);
-            const list = this.byCategory.get(record.category);
+        this.factory = factory;
+        this.specs = MoleculeCatalog.buildCompactSpecs();
+        this.specsById = new Map();
+        this.specsByCategory = new Map();
+        this.cache = new Map();
+        for (const spec of this.specs) {
+            this.specsById.set(spec.id, spec);
+            const list = this.specsByCategory.get(spec.category);
             if (list === undefined) {
-                this.byCategory.set(record.category, [record]);
+                this.specsByCategory.set(spec.category, [spec]);
             } else {
-                list.push(record);
+                list.push(spec);
             }
         }
     }
 
+    private build(spec: ICompactMoleculeSpec): IMoleculeRecord {
+        const cached = this.cache.get(spec.id);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const record = this.factory.build(spec);
+        this.cache.set(spec.id, record);
+        return record;
+    }
+
     public getCategories(): ReadonlyArray<MoleculeCategory> {
-        return Array.from(this.byCategory.keys());
+        return Array.from(this.specsByCategory.keys());
     }
 
     public getRecords(category: MoleculeCategory): ReadonlyArray<IMoleculeRecord> {
-        return this.byCategory.get(category) ?? [];
+        const specs = this.specsByCategory.get(category);
+        if (specs === undefined) {
+            return [];
+        }
+        return specs.map((spec) => this.build(spec));
     }
 
     public getAllRecords(): ReadonlyArray<IMoleculeRecord> {
-        return this.records;
+        return this.specs.map((spec) => this.build(spec));
     }
 
     public findById(id: string): IMoleculeRecord | undefined {
-        return this.byId.get(id);
+        const spec = this.specsById.get(id);
+        return spec === undefined ? undefined : this.build(spec);
     }
 
     public getCount(): number {
-        return this.records.length;
+        return this.specs.length;
     }
 
     public getTagCounts(): Map<string, number> {
         const counts = new Map<string, number>();
-        for (const record of this.records) {
-            for (const tag of record.tags) {
+        for (const spec of this.specs) {
+            for (const tag of spec.tags) {
                 counts.set(tag, (counts.get(tag) ?? 0) + 1);
             }
         }

@@ -2,7 +2,7 @@
 
 Five engines run in the fixed-step loop, all publishing the same event type so the log, flashes, particles, and sound are uniform.
 
-1. **`ReactionEngine`** applies the fourteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
+1. **`ReactionEngine`** applies the eighteen hand-authored rules in `src/sim/ReactionCatalog.ts`.
 2. **`SynthesisEngine`** predicts new compounds from loose atoms using `CompoundSynthesizer` and the `ElementChemistry` table.
 3. **`RedoxEngine`** swaps metals using the standard reduction potentials in `Thermochemistry`.
 4. **`OxidationEngine`** halogenates hydrogen-bearing compounds and burns any fuel in oxygen.
@@ -26,8 +26,8 @@ These three are showcase rules. Everything else burns through the general combus
 
 | Rule                   | Reaction                                        | Needs               |
 | ---------------------- | ----------------------------------------------- | ------------------- |
-| polymerization-styrene | 3 styrene into polystyrene, deltaH -70          | 320 K plus catalyst |
-| polymerization-ethene  | 4 ethene into polyethylene, deltaH -95          | 350 K plus catalyst |
+| polymerization-styrene | 6 styrene into polystyrene, deltaH -70          | 320 K plus catalyst |
+| polymerization-ethene  | 10 ethene into polyethylene, deltaH -95         | 350 K plus catalyst |
 | peptide-bond           | 2 glycine into diglycine plus water, deltaH +15 | 300 K plus catalyst |
 
 ### Functional group chemistry
@@ -40,15 +40,21 @@ These three are showcase rules. Everything else burns through the general combus
 
 ### Energetics and edge cases
 
+Every detonation below uses the Kistiakowsky-Wilson product rule and balances exactly.
+
 | Rule | Reaction | Needs |
 | --- | --- | --- |
-| detonation-tnt | 2 TNT into nitrogen, carbon dioxide, water, deltaH -4200 | 500 K plus spark |
-| detonation-nitroglycerin | 2 nitroglycerin into nitrogen, carbon dioxide, water, oxygen, deltaH -3800 | 450 K plus spark |
+| detonation-tnt | 2 TNT into 3 N2, 12 CO, 5 H2, 2 C, deltaH -1192 | 500 K plus spark |
+| detonation-nitroglycerin | 4 nitroglycerin into 12 CO2, 10 H2O, 6 N2, O2, deltaH -6000 | 450 K plus spark |
+| detonation-rdx | RDX into 3 CO, 3 H2O, 3 N2 | 480 K plus spark |
+| detonation-hmx | HMX into 4 CO, 4 H2O, 4 N2 | 480 K plus spark |
+| detonation-picric-acid | 2 picric acid into 12 CO, 2 H2O, H2, 3 N2 | 500 K plus spark |
+| detonation-ammonium-nitrate | 2 ammonium nitrate into 2 N2, 4 H2O, O2 | 500 K plus spark |
 | crystallization | salt plus water, visual only | under 280 K |
 | protein-folding | insulin, visual only | under 310 K |
-| atp-hydrolysis | ATP into ADP plus phosphoric acid, deltaH -30 | nothing |
+| atp-hydrolysis | ATP plus water into ADP plus phosphoric acid, deltaH -30 | nothing |
 
-Crystallization and protein folding keep their reactants and only stage visuals with narration, modeling nucleation and collapse without pretending to change composition.
+Crystallization and protein folding keep their reactants and only stage visuals with narration, modeling nucleation and collapse without pretending to change composition. Zero-product rules never consume their reactants and rate-limit their narration, so matter is never destroyed.
 
 ## Synthesis engine
 

@@ -1198,16 +1198,24 @@ export class ElementRegistry {
             if (dbl !== undefined) {
                 return dbl;
             }
-        }
-        if (order === 3) {
+        } else if (order === 3) {
             const tpl = table.get(a + "#" + b) ?? table.get(b + "#" + a);
             if (tpl !== undefined) {
                 return tpl;
             }
-        }
-        const single = table.get(key) ?? table.get(alt);
-        if (single !== undefined) {
-            return order === 4 ? single - 0.12 : single;
+        } else if (order === 1) {
+            const single = table.get(key) ?? table.get(alt);
+            if (single !== undefined) {
+                return single;
+            }
+        } else if (order === 4) {
+            const dbl = table.get(a + "=" + b) ?? table.get(b + "=" + a);
+            if (dbl !== undefined) {
+                const single = table.get(key) ?? table.get(alt);
+                if (single !== undefined) {
+                    return single - 0.12;
+                }
+            }
         }
         const ra = ElementRegistry.get(a).covalentRadius;
         const rb = ElementRegistry.get(b).covalentRadius;

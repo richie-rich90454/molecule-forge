@@ -345,8 +345,13 @@ export class MoleculeFactory {
         const cellKey = (x: number, y: number, z: number): number =>
             ((x + OFF) * SPAN + (y + OFF)) * SPAN + (z + OFF);
         const cell = 2.5;
+        const grid = new Map<number, number[]>();
+        const usedKeys: number[] = [];
         const resolveOverlaps = (): boolean => {
-            const grid = new Map<number, number[]>();
+            for (const key of usedKeys) {
+                (grid.get(key) as number[]).length = 0;
+            }
+            usedKeys.length = 0;
             for (let i = 0; i < n; i++) {
                 const a = atoms[i];
                 const key = cellKey(
@@ -354,12 +359,13 @@ export class MoleculeFactory {
                     Math.floor(a.y / cell),
                     Math.floor(a.z / cell),
                 );
-                const list = grid.get(key);
+                let list = grid.get(key);
                 if (list === undefined) {
-                    grid.set(key, [i]);
-                } else {
-                    list.push(i);
+                    list = [];
+                    grid.set(key, list);
                 }
+                list.push(i);
+                usedKeys.push(key);
             }
             let found = false;
             for (let i = 0; i < n; i++) {

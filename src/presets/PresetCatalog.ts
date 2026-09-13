@@ -28,6 +28,14 @@ export class PresetCatalog {
     public static buildPresets(): IPreset[] {
         return [
             {
+                id: "empty",
+                name: "Empty Chamber",
+                description: "A clean vacuum, ready for your own molecules",
+                seed: 1100,
+                spawns: [],
+                conditions: { temperature: 298 },
+            },
+            {
                 id: "primordial-soup",
                 name: "Primordial Soup",
                 description: "Amino acids simmer under lightning",

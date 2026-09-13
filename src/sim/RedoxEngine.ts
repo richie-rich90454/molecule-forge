@@ -2,6 +2,7 @@ import { ElementChemistry } from "../chem/ElementChemistry";
 import { Thermochemistry } from "../chem/Thermochemistry";
 import type { IMoleculeRecord, IMoleculeRegistry } from "../chem/MoleculeRecord";
 import type { CompoundSynthesizer } from "../chem/CompoundSynthesizer";
+import { SpatialHashGrid } from "./SpatialHashGrid";
 import type { SeededRandom } from "./SeededRandom";
 import type { World } from "./World";
 import type { MoleculeInstance } from "./MoleculeInstance";
@@ -18,6 +19,10 @@ export class RedoxEngine {
     private readonly registry: IMoleculeRegistry;
     private readonly synthesizer: CompoundSynthesizer;
     private readonly radius: number;
+    private readonly grid: SpatialHashGrid<MoleculeInstance>;
+    private readonly nearby: MoleculeInstance[];
+    private readonly freeMetals: MoleculeInstance[];
+    private readonly saltCache: Map<string, ISaltInfo | null>;
 
     public constructor(
         registry: IMoleculeRegistry,
@@ -27,12 +32,35 @@ export class RedoxEngine {
         this.registry = registry;
         this.synthesizer = synthesizer;
         this.radius = radius;
+        this.grid = new SpatialHashGrid<MoleculeInstance>(radius);
+        this.nearby = [];
+        this.freeMetals = [];
+        this.saltCache = new Map();
+    }
+
+    private static byId(a: MoleculeInstance, b: MoleculeInstance): number {
+        return a.id - b.id;
+    }
+
+    private saltInfoOf(record: IMoleculeRecord): ISaltInfo | null {
+        const cached = this.saltCache.get(record.id);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const info = RedoxEngine.saltInfo(record);
+        this.saltCache.set(record.id, info);
+        return info;
     }
 
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
         const instances = world.getInstanceList();
-        const freeMetals: MoleculeInstance[] = [];
-        const salts: Array<{ instance: MoleculeInstance; info: ISaltInfo }> = [];
+        this.grid.clear();
+        for (const inst of instances) {
+            this.grid.insert(inst);
+        }
+        const freeMetals = this.freeMetals;
+        freeMetals.length = 0;
+        let hasSalt = false;
         for (const inst of instances) {
             if (inst.record.atoms.length === 1) {
                 const element = inst.record.atoms[0].el;
@@ -42,26 +70,20 @@ export class RedoxEngine {
                 ) {
                     freeMetals.push(inst);
                 }
-            } else {
-                const info = RedoxEngine.saltInfo(inst.record);
-                if (info !== null) {
-                    salts.push({ instance: inst, info });
-                }
+            } else if (this.saltInfoOf(inst.record) !== null) {
+                hasSalt = true;
             }
         }
-        if (freeMetals.length === 0 || salts.length === 0) {
+        if (freeMetals.length === 0 || !hasSalt) {
             return;
         }
         for (const metal of freeMetals) {
             const metalElement = metal.record.atoms[0].el;
-            for (const { instance: salt, info } of salts) {
-                if (info.metal === metalElement) {
-                    continue;
-                }
-                const dx = salt.px - metal.px;
-                const dy = salt.py - metal.py;
-                const dz = salt.pz - metal.pz;
-                if (dx * dx + dy * dy + dz * dz > this.radius * this.radius) {
+            this.grid.queryRadius(metal.px, metal.py, metal.pz, this.radius, this.nearby);
+            this.nearby.sort(RedoxEngine.byId);
+            for (const salt of this.nearby) {
+                const info = this.saltInfoOf(salt.record);
+                if (info === null || info.metal === metalElement) {
                     continue;
                 }
                 const cell = Thermochemistry.cellPotential(metalElement, info.metal);

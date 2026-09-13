@@ -149,7 +149,15 @@ export class CameraController {
     }
 
     private apply(): void {
-        const x = this.target.x + this.radius * Math.sin(this.phi) * Math.sin(this.theta);
+        if (!Number.isFinite(this.radius + this.theta + this.phi)) {
+            this.radius = 55;
+            this.theta = 0.7;
+            this.phi = 1.1;
+        }
+        if (!Number.isFinite(this.target.x + this.target.y + this.target.z)) {
+            this.target.set(0, 0, 0);
+        }
+        this.radius = Math.max(this.minRadius, Math.min(this.maxRadius, this.radius));
         const y = this.target.y + this.radius * Math.cos(this.phi);
         const z = this.target.z + this.radius * Math.sin(this.phi) * Math.cos(this.theta);
         this.camera.position.set(x, y, z);

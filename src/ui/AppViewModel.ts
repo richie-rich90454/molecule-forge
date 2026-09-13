@@ -383,24 +383,14 @@ export class AppViewModel implements IReactionSink {
         }
         const rng = new SeededRandom(this.getSeed() + this.logCounter);
         for (const inst of volatile) {
-            if (rng.next() < 0.85) {
-                this.effects.flash(inst.px, inst.py, inst.pz, "#ff5030", 14);
-                this.effects.burst(
-                    inst.px,
-                    inst.py,
-                    inst.pz,
-                    "boom",
-                    Math.floor(rng.next() * 100000),
-                );
-                this.world.remove(inst.id);
-            } else {
-                inst.vx += (rng.next() - 0.5) * 40;
-                inst.vy += rng.next() * 30;
-                inst.vz += (rng.next() - 0.5) * 40;
-            }
+            this.effects.flash(inst.px, inst.py, inst.pz, "#ff5030", 14);
+            this.effects.burst(inst.px, inst.py, inst.pz, "boom", Math.floor(rng.next() * 100000));
+            inst.vx += (rng.next() - 0.5) * 40;
+            inst.vy += rng.next() * 30;
+            inst.vz += (rng.next() - 0.5) * 40;
         }
         if (volatile.length > 0) {
-            this.addLog("Detonation! " + volatile.length + " charges fired.", true);
+            this.addLog("Detonation armed: " + volatile.length + " charges primed.", true);
             this.sound.playBoom();
         } else {
             this.sound.playWhoosh();
@@ -424,12 +414,24 @@ export class AppViewModel implements IReactionSink {
         ]);
         let converted = 0;
         for (const [monomerId, polymerId] of mapping) {
-            const monomers = this.world.findInstances(monomerId, null, 12);
+            const monomer = this.registry.findById(monomerId);
             const polymer = this.registry.findById(polymerId);
-            if (polymer === undefined) {
+            if (monomer === undefined || polymer === undefined) {
                 continue;
             }
-            for (let i = 0; i + 2 < monomers.length; i += 3) {
+            const unitAtoms = monomer.atoms.filter((atom) => atom.el !== "H").length;
+            const polymerAtoms = polymer.atoms.filter((atom) => atom.el !== "H").length;
+            /* v8 ignore next -- defensive: every mapped monomer is a heavy-atom chain */
+            if (unitAtoms === 0 || polymerAtoms < unitAtoms) {
+                continue;
+            }
+            const degree = Math.round(polymerAtoms / unitAtoms);
+            /* v8 ignore next -- defensive: every mapped polymer spans at least two repeat units */
+            if (degree < 2) {
+                continue;
+            }
+            const monomers = this.world.findInstances(monomerId, null, degree * 6);
+            for (let i = 0; i + degree <= monomers.length; i += degree) {
                 if (!this.world.canAccommodate(polymer.atoms.length)) {
                     this.addLog("Atom budget reached. Clear or remove molecules first.", true);
                     break;
@@ -437,13 +439,13 @@ export class AppViewModel implements IReactionSink {
                 let cx = 0;
                 let cy = 0;
                 let cz = 0;
-                for (let k = 0; k < 3; k++) {
+                for (let k = 0; k < degree; k++) {
                     cx += monomers[i + k].px;
                     cy += monomers[i + k].py;
                     cz += monomers[i + k].pz;
                     this.world.remove(monomers[i + k].id);
                 }
-                this.world.spawn(polymer, cx / 3, cy / 3, cz / 3, 1);
+                this.world.spawn(polymer, cx / degree, cy / degree, cz / degree, 1);
                 converted++;
                 if (converted >= 6) {
                     break;

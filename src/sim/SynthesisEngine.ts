@@ -1,5 +1,6 @@
 import type { IMoleculeRecord, IMoleculeRegistry } from "../chem/MoleculeRecord";
 import { CompoundSynthesizer, type ISynthesisProduct } from "../chem/CompoundSynthesizer";
+import { SolventModel } from "../chem/SolventModel";
 import type { SeededRandom } from "./SeededRandom";
 import type { World } from "./World";
 import type { MoleculeInstance } from "./MoleculeInstance";
@@ -140,7 +141,24 @@ export class SynthesisEngine {
         if (product.kind === "covalent" && temperature < 250 && world.params.spark <= 0.05) {
             return false;
         }
-        return true;
+        if (product.enthalpy === null) {
+            return true;
+        }
+        const charges: number[] = [];
+        for (const inst of world.getInstanceList()) {
+            for (const atom of inst.record.atoms) {
+                if (atom.charge !== 0) {
+                    charges.push(atom.charge);
+                }
+            }
+        }
+        const activity = SolventModel.activity(
+            1,
+            charges,
+            world.boxSize * world.boxSize * world.boxSize,
+        );
+        const effective = product.enthalpy / Math.max(0.2, activity);
+        return !(effective > 100 && temperature < 800 && world.params.spark <= 0.05);
     }
 
     private emitHint(
@@ -251,7 +269,13 @@ export class SynthesisEngine {
         }
         sink.publish({
             ruleId: "synthesis-" + product.formula,
-            message: product.name + " forms as " + product.formula + ".",
+            message:
+                product.name +
+                " forms as " +
+                product.formula +
+                (product.enthalpy === null
+                    ? "."
+                    : " (delta-H " + Math.round(product.enthalpy) + " kJ/mol)."),
             x: center.x,
             y: center.y,
             z: center.z,

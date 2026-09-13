@@ -102,8 +102,11 @@ export class MoleculeValidator {
             const dy = a.y - b.y;
             const dz = a.z - b.z;
             const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            const limit =
+            const base =
                 metals.has(a.el) || metals.has(b.el) ? this.maxMetalBondLength : this.maxBondLength;
+            const order = bond.aromatic ? 4 : bond.order;
+            const ideal = ElementRegistry.bondLength(a.el, b.el, order);
+            const limit = Math.max(base, ideal * 1.15);
             if (dist > limit) {
                 errors.push(
                     "bond too long: " + bond.a + "-" + bond.b + " at " + dist.toFixed(3) + " A",

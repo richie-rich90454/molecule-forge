@@ -101,9 +101,13 @@ describe("MoleculeFactoryExtras", () => {
             explicitH: [],
         };
         const record = factory.build(spec);
-        expect(record.bonds.length).toBe(1);
-        expect(record.bonds[0].order).toBe(2);
-        expect(record.bonds[0].stereo).toBe("E");
+        const heavy = record.bonds.filter(
+            (bond) => record.atoms[bond.a].el === "C" && record.atoms[bond.b].el === "C",
+        );
+        expect(heavy.length).toBe(1);
+        expect(heavy[0].order).toBe(2);
+        expect(heavy[0].stereo).toBe("E");
+        expect(record.bonds.length).toBe(heavy.length + 4);
     });
 
     it("marks tetrahedral stereocenters R and S", () => {

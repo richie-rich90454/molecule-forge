@@ -368,7 +368,11 @@ function build(rows: ReadonlyArray<IonRow>): ReadonlyArray<IIonSpec> {
 }
 
 export class PolyatomicIons {
-    private static readonly ANIONS: ReadonlyArray<IIonSpec> = build(ANION_ROWS);
+    private static readonly GENERATED: ReadonlyArray<IIonSpec> = PolyatomicIons.generateOxyanions();
+    private static readonly ANIONS: ReadonlyArray<IIonSpec> = [
+        ...build(ANION_ROWS),
+        ...PolyatomicIons.GENERATED,
+    ];
     private static readonly CATIONS: ReadonlyArray<IIonSpec> = build(CATION_ROWS);
 
     public static anions(): ReadonlyArray<IIonSpec> {
@@ -377,6 +381,64 @@ export class PolyatomicIons {
 
     public static cations(): ReadonlyArray<IIonSpec> {
         return PolyatomicIons.CATIONS;
+    }
+
+    private static generateOxyanions(): ReadonlyArray<IIonSpec> {
+        const centers: ReadonlyArray<readonly [string, number, number, string, number]> = [
+            ["Br", 5, 3, "bromate", 1],
+            ["Br", 7, 4, "perbromate", 1],
+            ["Br", 1, 1, "hypobromite", 1],
+            ["I", 5, 3, "iodate", 1],
+            ["I", 7, 4, "periodate", 1],
+            ["I", 1, 1, "hypoiodite", 1],
+            ["As", 5, 4, "arsenate", 1],
+            ["As", 3, 3, "arsenite", 1],
+            ["Se", 6, 4, "selenate", 1],
+            ["Se", 4, 3, "selenite", 1],
+            ["Te", 6, 4, "tellurate", 1],
+            ["Te", 4, 3, "tellurite", 1],
+            ["Si", 4, 3, "silicate", 1],
+            ["Ge", 4, 3, "germanate", 1],
+            ["B", 3, 3, "borate", 1],
+            ["Sb", 5, 4, "antimonate", 1],
+            ["Sb", 3, 3, "antimonite", 1],
+        ];
+        return centers.map(([symbol, oxidation, oxygens, label, rank]) => {
+            const charge = oxidation - 2 * oxygens;
+            const heavy = [symbol];
+            for (let i = 0; i < oxygens; i++) {
+                heavy.push("O");
+            }
+            const bonds: Array<readonly [number, number, number]> = [[0, 1, 2]];
+            for (let j = 2; j <= oxygens; j++) {
+                bonds.push([0, j, 1]);
+            }
+            const charges: Array<readonly [number, number]> = [];
+            const centralCharge = charge + (oxygens - 1);
+            if (centralCharge !== 0) {
+                charges.push([0, centralCharge]);
+            }
+            for (let j = 2; j <= oxygens; j++) {
+                charges.push([j, -1]);
+            }
+            const composition = new Map<string, number>([
+                [symbol, 1],
+                ["O", oxygens],
+            ]);
+            return {
+                id: label.replace(/ /g, "-"),
+                label,
+                formula: symbol + (oxygens > 1 ? "O" + oxygens : "O"),
+                charge,
+                composition,
+                heavy,
+                bonds,
+                charges,
+                explicitH: [],
+                bindingAtom: 1,
+                rank,
+            };
+        });
     }
 
     public static netCharge(ion: IIonSpec): number {

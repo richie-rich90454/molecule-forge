@@ -50,6 +50,10 @@ function makeAtom(el: string, x: number, charge: number): IMoleculeRecord["atoms
     return { el, x, y: 0, z: 0, charge, stereo: null, aromatic: false };
 }
 
+function carbonChain(count: number): IMoleculeRecord["atoms"] {
+    return new Array(count).fill(null).map((_, index) => makeAtom("C", index * 1.5, 0));
+}
+
 function makeRecord(id: string, overrides: Partial<IMoleculeRecord> = {}): IMoleculeRecord {
     return {
         id,
@@ -91,11 +95,17 @@ class FakeRegistry implements IMoleculeRegistry {
                 category: "explosives",
                 tags: ["explosive"],
             }),
-            makeRecord("styrene", { name: "Styrene", formula: "C8H8", tags: ["monomer"] }),
+            makeRecord("styrene", {
+                name: "Styrene",
+                formula: "C8H8",
+                tags: ["monomer"],
+                atoms: carbonChain(8),
+            }),
             makeRecord("polystyrene", {
                 name: "Polystyrene",
-                formula: "C16H16",
+                formula: "C48H48",
                 tags: ["polymer"],
+                atoms: carbonChain(48),
             }),
         ];
     }
@@ -336,7 +346,7 @@ describe("AppViewModel coverage", () => {
     it("stops polymerization at the atom budget", () => {
         const { vm, world } = makeVm();
         const styrene = vm.getRegistry().findById("styrene") as IMoleculeRecord;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 6; i++) {
             world.spawn(styrene, i, 0, 0, 0);
         }
         vi.spyOn(world, "canAccommodate").mockReturnValue(false);

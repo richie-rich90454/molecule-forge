@@ -89,6 +89,7 @@ export class Application implements IEffectSink {
                             this.attachCanvas(element);
                         },
                         onResetCamera: () => {
+                            /* v8 ignore next -- only fires from the mounted shell, where the renderer is attached */
                             if (this.renderer !== null) {
                                 this.renderer.getController().reset();
                             }

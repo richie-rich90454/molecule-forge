@@ -1,31 +1,37 @@
-export class SpatialHashGrid {
+export interface IGridEntity {
+    readonly id: number;
+    readonly px: number;
+    readonly py: number;
+    readonly pz: number;
+}
+
+const KEY_SPAN = 4096;
+const KEY_OFFSET = 2048;
+
+export class SpatialHashGrid<T extends IGridEntity> {
     private readonly cellSize: number;
-    private readonly cells: Map<string, number[]>;
-    private readonly positions: Map<number, number[]>;
+    private readonly cells: Map<number, T[]>;
 
     public constructor(cellSize: number) {
         this.cellSize = cellSize;
         this.cells = new Map();
-        this.positions = new Map();
     }
 
     public clear(): void {
         this.cells.clear();
-        this.positions.clear();
     }
 
-    public insert(id: number, x: number, y: number, z: number): void {
-        const key = this.keyFor(x, y, z);
+    public insert(entity: T): void {
+        const key = this.keyFor(entity.px, entity.py, entity.pz);
         const list = this.cells.get(key);
         if (list === undefined) {
-            this.cells.set(key, [id]);
+            this.cells.set(key, [entity]);
         } else {
-            list.push(id);
+            list.push(entity);
         }
-        this.positions.set(id, [x, y, z]);
     }
 
-    public queryRadius(x: number, y: number, z: number, radius: number, out: number[]): number[] {
+    public queryRadius(x: number, y: number, z: number, radius: number, out: T[]): T[] {
         out.length = 0;
         const minX = Math.floor((x - radius) / this.cellSize);
         const maxX = Math.floor((x + radius) / this.cellSize);
@@ -37,20 +43,19 @@ export class SpatialHashGrid {
         for (let cx = minX; cx <= maxX; cx++) {
             for (let cy = minY; cy <= maxY; cy++) {
                 for (let cz = minZ; cz <= maxZ; cz++) {
-                    const list = this.cells.get(cx + "," + cy + "," + cz);
+                    const list = this.cells.get(
+                        ((cx + KEY_OFFSET) * KEY_SPAN + (cy + KEY_OFFSET)) * KEY_SPAN +
+                            (cz + KEY_OFFSET),
+                    );
                     if (list === undefined) {
                         continue;
                     }
-                    for (const id of list) {
-                        const p = this.positions.get(id);
-                        if (p === undefined) {
-                            continue;
-                        }
-                        const dx = p[0] - x;
-                        const dy = p[1] - y;
-                        const dz = p[2] - z;
+                    for (const entity of list) {
+                        const dx = entity.px - x;
+                        const dy = entity.py - y;
+                        const dz = entity.pz - z;
                         if (dx * dx + dy * dy + dz * dz <= r2) {
-                            out.push(id);
+                            out.push(entity);
                         }
                     }
                 }
@@ -63,13 +68,10 @@ export class SpatialHashGrid {
         return this.cells.size;
     }
 
-    private keyFor(x: number, y: number, z: number): string {
-        return (
-            Math.floor(x / this.cellSize) +
-            "," +
-            Math.floor(y / this.cellSize) +
-            "," +
-            Math.floor(z / this.cellSize)
-        );
+    private keyFor(x: number, y: number, z: number): number {
+        const cx = Math.floor(x / this.cellSize) + KEY_OFFSET;
+        const cy = Math.floor(y / this.cellSize) + KEY_OFFSET;
+        const cz = Math.floor(z / this.cellSize) + KEY_OFFSET;
+        return (cx * KEY_SPAN + cy) * KEY_SPAN + cz;
     }
 }

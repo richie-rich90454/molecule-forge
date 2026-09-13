@@ -4,19 +4,20 @@ import type {
     ISimParams,
     MutablePairInput,
 } from "./IForceCalculator";
+import type { MoleculeInstance } from "./MoleculeInstance";
 import { SeededRandom } from "./SeededRandom";
 import { SpatialHashGrid } from "./SpatialHashGrid";
 import type { World } from "./World";
 
 export class PhysicsEngine {
     private readonly calculators: ReadonlyArray<IForceCalculator>;
-    private readonly grid: SpatialHashGrid;
+    private readonly grid: SpatialHashGrid<MoleculeInstance>;
     private readonly pairInput: MutablePairInput;
-    private readonly scratchIds: number[];
+    private readonly scratch: MoleculeInstance[];
 
     public constructor(calculators: ReadonlyArray<IForceCalculator>, params: ISimParams) {
         this.calculators = calculators;
-        this.grid = new SpatialHashGrid(6);
+        this.grid = new SpatialHashGrid<MoleculeInstance>(10);
         this.pairInput = {
             ax: 0,
             ay: 0,
@@ -35,7 +36,7 @@ export class PhysicsEngine {
             bAcceptors: 0,
             params,
         };
-        this.scratchIds = [];
+        this.scratch = [];
     }
 
     public step(world: World, dt: number, rng: SeededRandom): void {
@@ -59,7 +60,7 @@ export class PhysicsEngine {
         this.grid.clear();
         for (const inst of instances) {
             if (inst.alive) {
-                this.grid.insert(inst.id, inst.px, inst.py, inst.pz);
+                this.grid.insert(inst);
             }
         }
         const cutoff = 10;
@@ -67,13 +68,9 @@ export class PhysicsEngine {
             if (!a.alive) {
                 continue;
             }
-            this.grid.queryRadius(a.px, a.py, a.pz, cutoff, this.scratchIds);
-            for (const otherId of this.scratchIds) {
-                if (otherId <= a.id) {
-                    continue;
-                }
-                const b = world.findById(otherId);
-                if (b === undefined || !b.alive) {
+            this.grid.queryRadius(a.px, a.py, a.pz, cutoff, this.scratch);
+            for (const b of this.scratch) {
+                if (b.id <= a.id || !b.alive) {
                     continue;
                 }
                 const dx = a.px - b.px;
@@ -84,6 +81,21 @@ export class PhysicsEngine {
                     continue;
                 }
                 const dist = Math.sqrt(distSq);
+                let range = 0;
+                let known = true;
+                for (const calc of this.calculators) {
+                    if (calc.getRange === undefined) {
+                        known = false;
+                        break;
+                    }
+                    const limit = calc.getRange(a, b);
+                    if (limit > range) {
+                        range = limit;
+                    }
+                }
+                if (known && dist > range) {
+                    continue;
+                }
                 const input = this.pairInput;
                 const mutable = input as { -readonly [K in keyof IPairInput]: IPairInput[K] };
                 mutable.ax = a.px;
@@ -97,10 +109,10 @@ export class PhysicsEngine {
                 mutable.bRadius = b.radius;
                 mutable.aCharge = a.charge;
                 mutable.bCharge = b.charge;
-                mutable.aDonors = a.getDonors();
-                mutable.aAcceptors = a.getAcceptors();
-                mutable.bDonors = b.getDonors();
-                mutable.bAcceptors = b.getAcceptors();
+                mutable.aDonors = a.donors;
+                mutable.aAcceptors = a.acceptors;
+                mutable.bDonors = b.donors;
+                mutable.bAcceptors = b.acceptors;
                 let total = 0;
                 for (const calc of this.calculators) {
                     total += calc.computeMagnitude(input);

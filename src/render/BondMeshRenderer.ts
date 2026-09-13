@@ -1,15 +1,15 @@
 import * as THREE from "three";
 
 export interface IRenderBond {
-    readonly ax: number;
-    readonly ay: number;
-    readonly az: number;
-    readonly bx: number;
-    readonly by: number;
-    readonly bz: number;
-    readonly order: number;
-    readonly aromatic: boolean;
-    readonly ionic?: boolean;
+    ax: number;
+    ay: number;
+    az: number;
+    bx: number;
+    by: number;
+    bz: number;
+    order: number;
+    aromatic: boolean;
+    ionic?: boolean;
 }
 
 const IONIC_DASHES = 4;

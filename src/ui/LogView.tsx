@@ -1,13 +1,14 @@
 import { For, type JSX } from "solid-js";
-import type { AppViewModel } from "./AppViewModel";
+import type { AppViewModel, ILogEntry } from "./AppViewModel";
+import type { IReactionEvent } from "../sim/ReactionEngine";
 
 export function LogView(properties: { vm: AppViewModel }): JSX.Element {
     const vm = properties.vm;
-    const latest = (): { time: number; text: string; flash: boolean } | null => {
+    const latest = (): ILogEntry | null => {
         const entries = vm.getLog();
         return entries.length === 0 ? null : entries[entries.length - 1];
     };
-    const visible = (): ReadonlyArray<{ time: number; text: string; flash: boolean }> => {
+    const visible = (): ReadonlyArray<ILogEntry> => {
         const entries = vm.getLog();
         return entries.slice(Math.max(0, entries.length - 8));
     };
@@ -30,12 +31,27 @@ export function LogView(properties: { vm: AppViewModel }): JSX.Element {
             {vm.getLogOpen() ? (
                 <div class="mf-log-list">
                     <For each={visible()}>
-                        {(entry) => (
-                            <div class={entry.flash ? "mf-log-line mf-flash" : "mf-log-line"}>
-                                <span class="mf-time">{entry.time}</span>
-                                {entry.text}
-                            </div>
-                        )}
+                        {(entry) =>
+                            entry.event !== undefined ? (
+                                <button
+                                    class={
+                                        entry.flash
+                                            ? "mf-log-line mf-log-clickable mf-flash"
+                                            : "mf-log-line mf-log-clickable"
+                                    }
+                                    onClick={() => vm.explainEvent(entry.event as IReactionEvent)}
+                                    title="Explain this reaction"
+                                >
+                                    <span class="mf-time">{entry.time}</span>
+                                    {entry.text}
+                                </button>
+                            ) : (
+                                <div class={entry.flash ? "mf-log-line mf-flash" : "mf-log-line"}>
+                                    <span class="mf-time">{entry.time}</span>
+                                    {entry.text}
+                                </div>
+                            )
+                        }
                     </For>
                 </div>
             ) : null}

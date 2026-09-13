@@ -168,6 +168,13 @@ export class ElementChemistry {
         return info.kind === "noble";
     }
 
+    public static isInert(info: IElementChemistry): boolean {
+        if (info.kind !== "noble") {
+            return false;
+        }
+        return info.symbol !== "Xe" && info.symbol !== "Kr" && info.symbol !== "Rn";
+    }
+
     public static isAnionFormer(info: IElementChemistry): boolean {
         return info.anion !== null;
     }

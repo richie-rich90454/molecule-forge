@@ -1,12 +1,12 @@
 /// <reference types="vitest" />
 /// <reference types="vite/client" />
 
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import solidPlugin from "vite-plugin-solid";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
 export default defineConfig({
-    plugins: [solidPlugin(), viteSingleFile()],
+    plugins: [solidPlugin({ hot: false }), viteSingleFile()],
     base: "./",
     server: {
         port: 3000,

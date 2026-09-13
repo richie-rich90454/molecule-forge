@@ -22,7 +22,7 @@ Spark arms ignition and adds 150 K. Far below 700 K with no fuel nearby, there i
 
 ## Atoms sit next to each other and never react
 
-Synthesis is stoichiometric, not magnetic. Place enough of each element within a few angstroms. A single cerium atom needs three bromine atoms before CeBr3 can form, and the log says so: "Cerium(III) bromide needs 1 Ce and 3 Br per unit." Two bromine atoms alone make Br2 instead. Noble gases are inert by design. Once the ratio is right, the compound forms within a few simulation ticks; raise the temperature or the Speed slider to hurry it along. Charges and the reaction log make it easy to confirm a compound formed.
+Synthesis is stoichiometric, not magnetic. Place enough of each element within a few angstroms. A single cerium atom needs three bromine atoms before CeBr3 can form, and the log says so: "Cerium(III) bromide needs 1 Ce and 3 Br per unit." Two bromine atoms alone make Br2 instead. Helium, neon, and argon never bond; xenon, krypton, and radon need fluorine. Once the ratio is right, the compound forms within a few simulation ticks; raise the temperature or the Speed slider to hurry it along. Charges and the reaction log make it easy to confirm a compound formed.
 
 ## A synthesized compound cannot be restored from a snapshot
 

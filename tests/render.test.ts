@@ -371,11 +371,13 @@ describe("RendererFacade", () => {
         b.prevPx = 4;
         renderer.setShowBonds(true);
         renderer.setShowOrbitals(true);
-        renderer.setShowGraph(true);
         renderer.setChargeGlow(1);
         renderer.setHaloEnabled(true);
         renderer.setGridVisible(true);
         renderer.renderFrame([a, b], 0.5, 0.016, 300);
+        renderer.setShowGraph(true);
+        renderer.renderFrame([a, b], 0.5, 0.016, 300);
+        renderer.setShowGraph(false);
         renderer.setShowBonds(false);
         renderer.setHaloEnabled(false);
         renderer.setChargeGlow(0);
@@ -386,6 +388,14 @@ describe("RendererFacade", () => {
         expect(renderer.getQuality().getLevel()).toBe(0);
         renderer.getController().reset();
         renderer.resize();
+        renderer.dispose();
+        div.remove();
+    });
+
+    it("renders graph mode before any halo exists", () => {
+        const { renderer, div } = makeRenderer();
+        renderer.setShowGraph(true);
+        renderer.renderFrame([makeInstance(0)], 0.5, 0.016, 300);
         renderer.dispose();
         div.remove();
     });

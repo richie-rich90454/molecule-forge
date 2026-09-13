@@ -501,6 +501,37 @@ describe("LibraryViews", () => {
         unmount();
     });
 
+    it("opens an explanation from an event log line", () => {
+        const { vm } = makeVm();
+        vm.publish({
+            ruleId: "detonation-tnt",
+            message: "TNT detonates.",
+            x: 0,
+            y: 0,
+            z: 0,
+            flash: "#fff",
+            particles: "spark",
+            deltaH: -1000,
+        });
+        vm.addLog("Quiet event.", false, {
+            ruleId: "detonation-rdx",
+            message: "RDX detonates.",
+            x: 0,
+            y: 0,
+            z: 0,
+            flash: "#fff",
+            particles: "puff",
+        });
+        const { unmount } = render(() => LogView({ vm }));
+        fireEvent.click(screen.getByTitle("Collapse or expand the reaction log"));
+        const lines = screen.getAllByTitle("Explain this reaction");
+        expect(lines.length).toBe(2);
+        fireEvent.click(lines[0]);
+        expect(vm.getPanel()).toBe("explain");
+        expect(vm.getExplainReaction()?.ruleId).toBe("detonation-tnt");
+        unmount();
+    });
+
     it("moves all sliders", () => {
         const { vm } = makeVm();
         let changes = 0;

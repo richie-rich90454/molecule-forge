@@ -29,11 +29,13 @@ export class AtomMeshRenderer {
     private readonly quaternion: THREE.Quaternion;
     private readonly scale: THREE.Vector3;
     private readonly color: THREE.Color;
+    private graphMode: boolean;
 
     public constructor(scene: THREE.Scene) {
         this.scene = scene;
         this.meshes = new Map();
         this.halo = null;
+        this.graphMode = false;
         this.matrix = new THREE.Matrix4();
         this.position = new THREE.Vector3();
         this.quaternion = new THREE.Quaternion();
@@ -85,6 +87,16 @@ export class AtomMeshRenderer {
         }
     }
 
+    public setGraphMode(enabled: boolean): void {
+        if (this.graphMode === enabled) {
+            return;
+        }
+        this.graphMode = enabled;
+        for (const entry of this.meshes.values()) {
+            (entry.mesh.material as THREE.MeshStandardMaterial).wireframe = enabled;
+        }
+    }
+
     public dispose(): void {
         for (const entry of this.meshes.values()) {
             this.scene.remove(entry.mesh);
@@ -120,6 +132,7 @@ export class AtomMeshRenderer {
             metalness: 0.15,
             emissive: new THREE.Color(colorHex),
             emissiveIntensity: 0.12,
+            wireframe: this.graphMode,
         });
         const mesh = new THREE.InstancedMesh(geometry, material, capacity);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -146,6 +159,13 @@ export class AtomMeshRenderer {
     }
 
     private updateHalo(atoms: ReadonlyArray<IRenderAtom>, showOrbitals: boolean): void {
+        if (this.graphMode) {
+            if (this.halo !== null) {
+                this.halo.count = 0;
+                this.halo.instanceMatrix.needsUpdate = true;
+            }
+            return;
+        }
         if (this.halo === null || this.halo.instanceMatrix.count < atoms.length) {
             if (this.halo !== null) {
                 this.scene.remove(this.halo);

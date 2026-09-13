@@ -36,6 +36,14 @@ interface ICovalentSynth {
     readonly heavy: ReadonlyArray<string>;
 }
 
+interface ICovalentCandidate {
+    readonly catalogId: string | null;
+    readonly synth: ICovalentSynth | null;
+    readonly formula: string;
+    readonly needs: Map<string, number>;
+    readonly units: number;
+}
+
 const DIATOMIC_CATALOG: ReadonlyMap<string, string> = new Map([
     ["H", "hydrogen-elemental"],
     ["N", "nitrogen-elemental"],
@@ -51,31 +59,64 @@ const COVALENT_CATALOG: ReadonlyMap<string, string> = new Map([
     ["Br,H", "hydrogen-bromide"],
     ["H,H,O", "water"],
     ["H,H,H,N", "ammonia"],
+    ["C,H,H,H,H", "alkane-c1"],
     ["C,O,O", "carbon-dioxide"],
+    ["C,O", "carbon-monoxide"],
+    ["N,N,O", "nitrous-oxide"],
     ["O,O,S", "sulfur-dioxide"],
     ["N,O,O", "nitrogen-dioxide"],
     ["H,H,S", "hydrogen-sulfide"],
-    ["C,O", "carbon-monoxide"],
+    ["H,H,O,O", "hydrogen-peroxide"],
 ]);
 
 const COVALENT_SYNTH: ReadonlyMap<string, ICovalentSynth> = new Map([
     ["F,H", { name: "Hydrogen fluoride", formula: "HF", heavy: ["H", "F"] }],
+    ["F,F,Xe", { name: "Xenon difluoride", formula: "XeF2", heavy: ["Xe", "F", "F"] }],
+    [
+        "F,F,F,F,Xe",
+        { name: "Xenon tetrafluoride", formula: "XeF4", heavy: ["Xe", "F", "F", "F", "F"] },
+    ],
+    [
+        "F,F,F,F,F,F,Xe",
+        {
+            name: "Xenon hexafluoride",
+            formula: "XeF6",
+            heavy: ["Xe", "F", "F", "F", "F", "F", "F"],
+        },
+    ],
+    ["F,F,Kr", { name: "Krypton difluoride", formula: "KrF2", heavy: ["Kr", "F", "F"] }],
+    ["F,F,Rn", { name: "Radon difluoride", formula: "RnF2", heavy: ["Rn", "F", "F"] }],
 ]);
 
-function reactiveKey(totals: ReadonlyMap<string, number>): string {
-    const parts: string[] = [];
-    for (const [symbol, count] of totals) {
-        if (count <= 0 || !ElementChemistry.has(symbol)) {
-            continue;
+function keyCounts(key: string): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const symbol of key.split(",")) {
+        counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+    }
+    return counts;
+}
+
+function matchMultiplier(
+    entry: ReadonlyMap<string, number>,
+    reactive: ReadonlyMap<string, number>,
+): number | null {
+    if (entry.size !== reactive.size) {
+        return null;
+    }
+    let multiplier = -1;
+    for (const [symbol, need] of entry) {
+        const available = reactive.get(symbol);
+        if (available === undefined || available < need || available % need !== 0) {
+            return null;
         }
-        if (ElementChemistry.isNoble(ElementChemistry.get(symbol))) {
-            continue;
-        }
-        for (let i = 0; i < count; i++) {
-            parts.push(symbol);
+        const current = available / need;
+        if (multiplier === -1) {
+            multiplier = current;
+        } else if (current !== multiplier) {
+            return null;
         }
     }
-    return parts.sort().join(",");
+    return multiplier;
 }
 
 export class CompoundSynthesizer {
@@ -195,22 +236,65 @@ export class CompoundSynthesizer {
     }
 
     private predictCovalent(totals: ReadonlyMap<string, number>): ISynthesisProduct | null {
-        const key = reactiveKey(totals);
-        const needs = new Map<string, number>();
-        for (const symbol of key.split(",")) {
-            if (symbol === "") {
-                continue;
+        const reactive = new Map<string, number>();
+        for (const [symbol, count] of totals) {
+            if (count > 0 && ElementChemistry.has(symbol)) {
+                const info = ElementChemistry.get(symbol);
+                if (!ElementChemistry.isInert(info)) {
+                    reactive.set(symbol, count);
+                }
             }
-            needs.set(symbol, (needs.get(symbol) ?? 0) + 1);
         }
-        const catalogId = COVALENT_CATALOG.get(key);
-        if (catalogId !== undefined) {
-            return { catalogId, record: null, name: "", formula: key, needs, units: 1 };
-        }
-        const synth = COVALENT_SYNTH.get(key);
-        if (synth === undefined) {
+        if (reactive.size === 0) {
             return null;
         }
+        for (const [key, catalogId] of COVALENT_CATALOG) {
+            const candidate = CompoundSynthesizer.covalentCandidate(catalogId, null, key, reactive);
+            if (candidate !== null) {
+                return this.toCovalentProduct(candidate);
+            }
+        }
+        for (const [key, synth] of COVALENT_SYNTH) {
+            const candidate = CompoundSynthesizer.covalentCandidate(null, synth, key, reactive);
+            if (candidate !== null) {
+                return this.toCovalentProduct(candidate);
+            }
+        }
+        return null;
+    }
+
+    private static covalentCandidate(
+        catalogId: string | null,
+        synth: ICovalentSynth | null,
+        key: string,
+        reactive: ReadonlyMap<string, number>,
+    ): ICovalentCandidate | null {
+        const needs = keyCounts(key);
+        const units = matchMultiplier(needs, reactive);
+        if (units === null) {
+            return null;
+        }
+        return {
+            catalogId,
+            synth,
+            formula: synth !== null ? synth.formula : key,
+            needs,
+            units,
+        };
+    }
+
+    private toCovalentProduct(candidate: ICovalentCandidate): ISynthesisProduct {
+        if (candidate.catalogId !== null) {
+            return {
+                catalogId: candidate.catalogId,
+                record: null,
+                name: "",
+                formula: candidate.formula,
+                needs: candidate.needs,
+                units: candidate.units,
+            };
+        }
+        const synth = candidate.synth as ICovalentSynth;
         const bonds: Array<readonly [number, number, number]> = [];
         for (let i = 1; i < synth.heavy.length; i++) {
             bonds.push([0, i, 1]);
@@ -228,8 +312,8 @@ export class CompoundSynthesizer {
             record,
             name: synth.name,
             formula: synth.formula,
-            needs,
-            units: 1,
+            needs: candidate.needs,
+            units: candidate.units,
         };
     }
 

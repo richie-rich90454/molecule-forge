@@ -5,6 +5,7 @@ import { LibraryView } from "./LibraryView";
 import { LogView } from "./LogView";
 import { MeasureView } from "./MeasureView";
 import { ReferenceView } from "./ReferenceView";
+import { ExplainView } from "./ExplainView";
 import { PresetsView } from "./PresetsView";
 import { SlidersView } from "./SlidersView";
 import { TabsView } from "./TabsView";
@@ -85,6 +86,16 @@ export function AppShell(properties: {
                         >
                             Reference
                         </button>
+                        <button
+                            class={
+                                vm.getPanel() === "explain"
+                                    ? "mf-panel-btn mf-active"
+                                    : "mf-panel-btn"
+                            }
+                            onClick={() => vm.selectPanel("explain")}
+                        >
+                            Explain
+                        </button>
                     </div>
                     <Show when={vm.getPanel() === "library"}>
                         <TabsView vm={vm} />
@@ -98,6 +109,9 @@ export function AppShell(properties: {
                     </Show>
                     <Show when={vm.getPanel() === "reference"}>
                         <ReferenceView data={vm.getReferenceData()} />
+                    </Show>
+                    <Show when={vm.getPanel() === "explain"}>
+                        <ExplainView data={vm.getExplainData()} />
                     </Show>
                 </aside>
                 <div class="mf-stage">

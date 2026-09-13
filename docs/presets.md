@@ -43,7 +43,7 @@ Thirty-six scenarios ship in `src/presets/PresetCatalog.ts`. Each fixes a seed, 
 
 ## Elemental scenes react
 
-The elemental scenes are not static. Semiconductor Doping, Halogen Series, Noble Gas Glow, Heavy Metal Sludge, and Actinide Ridge spawn loose atoms, so the synthesis engine starts forming compounds the moment two reactive elements touch: gallium and arsenic combine, noble gases stay inert by design, and the heavy-metal scene keeps its cations dissolved until a nonmetal arrives. Add a halogen to a metal scene to see a salt crystallize out of the chamber.
+The elemental scenes are not static. Semiconductor Doping, Halogen Series, Noble Gas Glow, Heavy Metal Sludge, and Actinide Ridge spawn loose atoms, so the synthesis engine starts forming compounds the moment two reactive elements touch: gallium and arsenic combine into GaAs, helium, neon, and argon stay inert (only xenon, krypton, and radon fluorides are reachable, and those scenes have no fluorine), and the heavy-metal scene keeps its cations dissolved until a nonmetal arrives. Add a halogen to a metal scene to see a salt crystallize out of the chamber.
 
 ## Snapshots
 

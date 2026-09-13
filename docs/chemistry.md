@@ -56,13 +56,17 @@ Where a standard datum genuinely does not exist the computation returns null and
 
 `Thermochemistry` also carries a table of standard reduction potentials. `RedoxEngine` uses them directly: when a free metal atom sits within contact range of a salt whose cation is less reducing, it computes the cell potential `E(cathode) - E(anode)` and, when positive, swaps them. Zinc displaces copper from copper chloride (`E-cell` 1.10 V) while copper cannot displace zinc. The engine never fires when the cell potential is zero or negative.
 
+## Oxidation and hydrogen abstraction
+
+`OxidationEngine` generalizes the classic halogenation reaction to every element. Any homonuclear diatomic whose element is more electronegative than hydrogen (F2, O2, N2, Cl2, Br2, I2, and any other diatomic element up to plutonium) can attack a compound that carries a hydrogen. It abstracts that hydrogen and inserts itself: `CH4 + F2` gives `CH3F + HF`, `C6H6 + F2` gives `C6H5F + HF`, `H2O + F2` gives `HOF + HF`. The engine reconstructs the target's bond graph from its record, chooses the substitution with the most exothermic bond-energy change, preserves formal charges and aromaticity, and rebuilds the product geometry. Kinetics come from data, not a list: a fluorine-class oxidizer (electronegativity at least 3.5) reacts on contact, while weaker oxidizers need thermal activation from an Evans-Polanyi style barrier, so chlorine and bromine halogenate when hot, and oxygen and nitrogen essentially never abstract a hydrogen thermally.
+
 ## Solvent model
 
 `SolventModel` treats the chamber as a continuum electrolyte. It computes ionic strength from the formal charges present and the chamber volume, and derives Debye-Huckel activity coefficients from it. The activity corrects the thermal gate for endothermic synthesis, so a concentrated ionic melt raises the energy needed for an unfavorable product. This is an ionic-atmosphere (continuum) solvent model, not explicit solvated molecules.
 
 ## Geometry
 
-`MoleculeFactory` expands implicit hydrogens from valence rules (with per-atom overrides for tricky pyrrole nitrogens and ions), places heavy atoms by breadth-first traversal using tetrahedral, trigonal, and linear direction sets that explicitly avoid folding back on the parent bond, drops hydrogens onto the emptiest directions, then relaxes everything: bonded springs pull toward reference lengths while a spatial grid pushes non-bonded overlaps apart, stopping early once the worst error drops under 0.15 angstroms. The overlap pass uses a numeric spatial hash and repeats only while overlaps remain, which keeps a full 507-molecule build well under a second. Multi-component records (salts, base pairs) are offset so counterions sit sensibly apart.
+`MoleculeFactory` expands implicit hydrogens from valence rules (with per-atom overrides for tricky pyrrole nitrogens and ions), places heavy atoms by breadth-first traversal using tetrahedral, trigonal, and linear direction sets that explicitly avoid folding back on the parent bond, drops hydrogens onto the emptiest directions, then relaxes everything: bonded springs pull toward reference lengths while a spatial grid pushes non-bonded overlaps apart, stopping early once the worst error drops under 0.15 angstroms. Every record carries its complete bond graph, including every element-hydrogen bond, so chemistry and rendering see the same connectivity. The overlap pass uses a numeric spatial hash and repeats only while overlaps remain, which keeps a full 507-molecule build well under a second. Multi-component records (salts, base pairs) are offset so counterions sit sensibly apart.
 
 ## Validation
 

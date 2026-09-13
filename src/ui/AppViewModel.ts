@@ -5,6 +5,7 @@ import { SnapshotCodec } from "../state/SnapshotCodec";
 import type { IReactionEvent, IReactionSink } from "../sim/ReactionEngine";
 import { ReactionCatalog, type IReactionRule } from "../sim/ReactionCatalog";
 import { ChamberAnalysis, LabRecorder, type IMeasureData } from "../sim/LabRecorder";
+import { ElementReference, type IReferenceData } from "../chem/ElementReference";
 import { SeededRandom } from "../sim/SeededRandom";
 import type { World } from "../sim/World";
 import type { SoundEngine } from "../audio/SoundEngine";
@@ -27,7 +28,7 @@ export interface ISelectedAtom {
 }
 
 export type CanvasTool = "orbit" | "place" | "erase";
-export type PanelMode = "library" | "analyze";
+export type PanelMode = "library" | "analyze" | "reference";
 
 const MAX_INSTANCES = 2500;
 
@@ -112,6 +113,7 @@ export class AppViewModel implements IReactionSink {
 
     private readonly recorder: LabRecorder;
     private readonly rules: ReadonlyArray<IReactionRule>;
+    private readonly referenceData: IReferenceData;
 
     public constructor(
         registry: IMoleculeRegistry,
@@ -126,6 +128,11 @@ export class AppViewModel implements IReactionSink {
         this.presets = PresetCatalog.buildPresets();
         this.rules = ReactionCatalog.buildRules();
         this.recorder = new LabRecorder();
+        this.referenceData = {
+            elements: ElementReference.elements(),
+            constants: ElementReference.constants(),
+            equations: ElementReference.equations(),
+        };
         this.logCounter = 0;
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
         this.getCategory = getCategory;
@@ -262,6 +269,10 @@ export class AppViewModel implements IReactionSink {
 
     public getPresets(): ReadonlyArray<IPreset> {
         return this.presets;
+    }
+
+    public getReferenceData(): IReferenceData {
+        return this.referenceData;
     }
 
     public publish(event: IReactionEvent): void {

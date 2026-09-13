@@ -1,7 +1,7 @@
 import type { IMoleculeRegistry, MoleculeCategory } from "../chem/MoleculeRecord";
 import { SeededRandom } from "./SeededRandom";
 import type { World } from "./World";
-import type { IReactionRule } from "./ReactionCatalog";
+import type { IReactionRule, IReactantMatcher } from "./ReactionCatalog";
 import type { MoleculeInstance } from "./MoleculeInstance";
 
 export interface IReactionEvent {
@@ -69,65 +69,43 @@ export class ReactionEngine {
         const anchor = candidates[Math.floor(rng.next() * candidates.length)];
         const consumed: MoleculeInstance[] = [anchor];
         const usedIds = new Set<number>([anchor.id]);
+        const reach =
+            rule.conditions.needsSpark || ReactionEngine.reactantCount(rule) > 2
+                ? null
+                : this.matchRadius;
         for (let r = 1; r < rule.reactants.length; r++) {
             const matcher = rule.reactants[r];
-            const partners = this.findCandidates(
+            const partners = this.nearestPartners(
                 world,
-                matcher.moleculeId,
-                matcher.category,
-                matcher.tag,
-                24,
+                anchor,
+                matcher,
+                usedIds,
+                matcher.count,
+                reach,
             );
-            let need = matcher.count;
+            if (partners.length < matcher.count) {
+                return;
+            }
             for (const partner of partners) {
-                if (usedIds.has(partner.id)) {
-                    continue;
-                }
-                const dx = partner.px - anchor.px;
-                const dy = partner.py - anchor.py;
-                const dz = partner.pz - anchor.pz;
-                if (dx * dx + dy * dy + dz * dz > this.matchRadius * this.matchRadius) {
-                    continue;
-                }
                 consumed.push(partner);
                 usedIds.add(partner.id);
-                need--;
-                if (need <= 0) {
-                    break;
-                }
-            }
-            if (need > 0) {
-                return;
             }
         }
         if (primary.count > 1) {
-            let need = primary.count - 1;
-            const partners = this.findCandidates(
+            const partners = this.nearestPartners(
                 world,
-                primary.moleculeId,
-                primary.category,
-                primary.tag,
-                24,
+                anchor,
+                primary,
+                usedIds,
+                primary.count - 1,
+                reach,
             );
+            if (partners.length < primary.count - 1) {
+                return;
+            }
             for (const partner of partners) {
-                if (usedIds.has(partner.id)) {
-                    continue;
-                }
-                const dx = partner.px - anchor.px;
-                const dy = partner.py - anchor.py;
-                const dz = partner.pz - anchor.pz;
-                if (dx * dx + dy * dy + dz * dz > this.matchRadius * this.matchRadius) {
-                    continue;
-                }
                 consumed.push(partner);
                 usedIds.add(partner.id);
-                need--;
-                if (need <= 0) {
-                    break;
-                }
-            }
-            if (need > 0) {
-                return;
             }
         }
         const temperature = world.params.temperature;
@@ -236,5 +214,54 @@ export class ReactionEngine {
             return found.slice(0, limit);
         }
         return found.filter((inst) => inst.record.tags.includes(tag)).slice(0, limit);
+    }
+
+    private static reactantCount(rule: IReactionRule): number {
+        let count = 0;
+        for (const reactant of rule.reactants) {
+            count += reactant.count;
+        }
+        return count;
+    }
+
+    private static distanceSq(a: MoleculeInstance, b: MoleculeInstance): number {
+        const dx = a.px - b.px;
+        const dy = a.py - b.py;
+        const dz = a.pz - b.pz;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private nearestPartners(
+        world: World,
+        anchor: MoleculeInstance,
+        matcher: IReactantMatcher,
+        usedIds: ReadonlySet<number>,
+        count: number,
+        reach: number | null,
+    ): MoleculeInstance[] {
+        const candidates = this.findCandidates(
+            world,
+            matcher.moleculeId,
+            matcher.category,
+            matcher.tag,
+            Math.max(64, count * 4),
+        );
+        const maxDistanceSq = reach === null ? Infinity : reach * reach;
+        const eligible: MoleculeInstance[] = [];
+        for (const candidate of candidates) {
+            if (usedIds.has(candidate.id)) {
+                continue;
+            }
+            if (ReactionEngine.distanceSq(candidate, anchor) > maxDistanceSq) {
+                continue;
+            }
+            eligible.push(candidate);
+        }
+        eligible.sort(
+            (a, b) =>
+                ReactionEngine.distanceSq(a, anchor) - ReactionEngine.distanceSq(b, anchor) ||
+                a.id - b.id,
+        );
+        return eligible.slice(0, count);
     }
 }

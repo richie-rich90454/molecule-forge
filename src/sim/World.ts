@@ -19,6 +19,7 @@ export class World {
     private readonly observers: IWorldObserver[];
     private readonly spawnRng: SeededRandom;
     private liveAtoms: number;
+    private instanceCache: MoleculeInstance[] | null;
     public params: ISimParams;
     public boxSize: number;
     public targetBoxSize: number;
@@ -30,6 +31,7 @@ export class World {
         this.observers = [];
         this.spawnRng = new SeededRandom(seed);
         this.liveAtoms = 0;
+        this.instanceCache = null;
         this.params = SimParamsFactory.createDefault();
         this.boxSize = 60;
         this.targetBoxSize = 60;
@@ -66,6 +68,7 @@ export class World {
         instance.avy = (this.spawnRng.next() - 0.5) * 2;
         instance.avz = (this.spawnRng.next() - 0.5) * 2;
         this.instances.set(instance.id, instance);
+        this.instanceCache = null;
         this.liveAtoms += record.atoms.length;
         for (const observer of this.observers) {
             observer.onSpawn(instance);
@@ -84,6 +87,7 @@ export class World {
     public remove(id: number): void {
         const instance = this.instances.get(id);
         if (instance !== undefined && this.instances.delete(id)) {
+            this.instanceCache = null;
             this.liveAtoms = Math.max(0, this.liveAtoms - instance.record.atoms.length);
             for (const observer of this.observers) {
                 observer.onRemove(id);
@@ -93,6 +97,7 @@ export class World {
 
     public clear(): void {
         this.instances.clear();
+        this.instanceCache = null;
         this.liveAtoms = 0;
         for (const observer of this.observers) {
             observer.onClear();
@@ -104,7 +109,10 @@ export class World {
     }
 
     public getInstanceList(): MoleculeInstance[] {
-        return Array.from(this.instances.values());
+        if (this.instanceCache === null) {
+            this.instanceCache = Array.from(this.instances.values());
+        }
+        return this.instanceCache;
     }
 
     public countAlive(): number {

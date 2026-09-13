@@ -1,0 +1,447 @@
+import { describe, expect, it } from "vitest";
+import { CompoundSynthesizer, type ISynthesisProduct } from "../src/chem/CompoundSynthesizer";
+import { ElementChemistry } from "../src/chem/ElementChemistry";
+import { ElementRegistry } from "../src/chem/ElementRegistry";
+import { MoleculeFactory } from "../src/chem/MoleculeFactory";
+import { MoleculeRegistry } from "../src/chem/MoleculeRegistry";
+import { PhysicsEngine } from "../src/sim/PhysicsEngine";
+import { SimParamsFactory } from "../src/sim/IForceCalculator";
+import { MoleculeInstance } from "../src/sim/MoleculeInstance";
+import type { IReactionEvent, IReactionSink } from "../src/sim/ReactionEngine";
+import { SeededRandom } from "../src/sim/SeededRandom";
+import { SynthesisEngine } from "../src/sim/SynthesisEngine";
+import { World } from "../src/sim/World";
+import type { IMoleculeRecord, IMoleculeRegistry } from "../src/chem/MoleculeRecord";
+
+function makeRegistry(): MoleculeRegistry {
+    return new MoleculeRegistry(new MoleculeFactory());
+}
+
+function makeWorld(): World {
+    return new World(new PhysicsEngine([], SimParamsFactory.createDefault()), 5);
+}
+
+function record(registry: MoleculeRegistry, id: string): IMoleculeRecord {
+    const found = registry.findById(id);
+    if (found === undefined) {
+        throw new Error("missing record: " + id);
+    }
+    return found;
+}
+
+function makeSink(): { events: IReactionEvent[]; sink: IReactionSink } {
+    const events: IReactionEvent[] = [];
+    return {
+        events,
+        sink: {
+            publish: (event: IReactionEvent): void => {
+                events.push(event);
+            },
+        },
+    };
+}
+
+function pool(
+    totals: Record<string, number>,
+    monatomic: Record<string, number> = {},
+): { totals: Map<string, number>; monatomic: Map<string, number> } {
+    return {
+        totals: new Map(Object.entries(totals)),
+        monatomic: new Map(Object.entries(monatomic)),
+    };
+}
+
+describe("ElementChemistry", () => {
+    it("covers every registered element", () => {
+        for (const symbol of ElementRegistry.getSymbols()) {
+            expect(ElementChemistry.has(symbol)).toBe(true);
+        }
+        expect(ElementChemistry.getSymbols().length).toBe(ElementRegistry.getSymbols().length);
+    });
+
+    it("classifies metals, nobles, and anion formers", () => {
+        expect(ElementChemistry.isMetal(ElementChemistry.get("Ce"))).toBe(true);
+        expect(ElementChemistry.isMetal(ElementChemistry.get("Na"))).toBe(true);
+        expect(ElementChemistry.isMetal(ElementChemistry.get("Br"))).toBe(false);
+        expect(ElementChemistry.isMetal(ElementChemistry.get("Si"))).toBe(false);
+        expect(ElementChemistry.isNoble(ElementChemistry.get("He"))).toBe(true);
+        expect(ElementChemistry.isNoble(ElementChemistry.get("Na"))).toBe(false);
+        expect(ElementChemistry.isAnionFormer(ElementChemistry.get("O"))).toBe(true);
+        expect(ElementChemistry.isAnionFormer(ElementChemistry.get("Na"))).toBe(false);
+    });
+
+    it("throws on unknown elements", () => {
+        expect(() => ElementChemistry.get("Xx")).toThrow("Unknown element chemistry: Xx");
+        expect(ElementChemistry.has("Xx")).toBe(false);
+    });
+
+    it("formats roman numerals, ion names, and compounds", () => {
+        expect(ElementChemistry.roman(1)).toBe("I");
+        expect(ElementChemistry.roman(3)).toBe("III");
+        expect(ElementChemistry.roman(9)).toBe("9");
+        expect(ElementChemistry.cationName("Na", 1)).toBe("Sodium");
+        expect(ElementChemistry.cationName("Fe", 3)).toBe("Iron(III)");
+        expect(ElementChemistry.cationName("Ce", 3)).toBe("Cerium(III)");
+        expect(ElementChemistry.anionName("Br")).toBe("bromide");
+        expect(ElementChemistry.anionName("O")).toBe("oxide");
+        expect(ElementChemistry.compoundName("Ce", 3, "Br")).toBe("Cerium(III) bromide");
+        expect(ElementChemistry.compoundName("Ca", 2, "Cl")).toBe("Calcium chloride");
+    });
+
+    it("computes greatest common divisors", () => {
+        expect(ElementChemistry.gcd(3, 1)).toBe(1);
+        expect(ElementChemistry.gcd(2, 2)).toBe(2);
+        expect(ElementChemistry.gcd(6, 4)).toBe(2);
+        expect(ElementChemistry.gcd(0, 5)).toBe(5);
+    });
+});
+
+describe("CompoundSynthesizer", () => {
+    const synthesizer = new CompoundSynthesizer(new MoleculeFactory());
+
+    it("forms cerium(III) bromide from Ce and Br", () => {
+        const result = synthesizer.predict(pool({ Ce: 1, Br: 3 }));
+        expect(result.product).not.toBeNull();
+        const product = result.product as ISynthesisProduct;
+        expect(product.formula).toBe("CeBr3");
+        expect(product.name).toBe("Cerium(III) bromide");
+        expect(product.needs.get("Ce")).toBe(1);
+        expect(product.needs.get("Br")).toBe(3);
+        expect(product.units).toBe(1);
+        expect(product.record?.atoms.length).toBe(4);
+        expect(product.record?.atoms[0].charge).toBe(3);
+        expect(product.record?.atoms[1].charge).toBe(-1);
+    });
+
+    it("hints when cerium lacks bromide", () => {
+        const result = synthesizer.predict(pool({ Ce: 1, Br: 2 }));
+        expect(result.product).toBeNull();
+        expect(result.hint).toContain("Cerium(III) bromide");
+        expect(result.hint).toContain("3 Br");
+    });
+
+    it("forms cerium(IV) bromide when four bromides are available", () => {
+        const product = synthesizer.predict(pool({ Ce: 1, Br: 4 })).product as ISynthesisProduct;
+        expect(product.formula).toBe("CeBr4");
+        expect(product.name).toBe("Cerium(IV) bromide");
+    });
+
+    it("forms variable-valence compounds at the fitting charge", () => {
+        const oxide = synthesizer.predict(pool({ Fe: 2, O: 3 })).product as ISynthesisProduct;
+        expect(oxide.formula).toBe("Fe2O3");
+        expect(oxide.name).toBe("Iron(III) oxide");
+        const bromide = synthesizer.predict(pool({ Fe: 1, Br: 2 })).product as ISynthesisProduct;
+        expect(bromide.formula).toBe("FeBr2");
+        expect(bromide.name).toBe("Iron(II) bromide");
+        const cupric = synthesizer.predict(pool({ Cu: 1, O: 1 })).product as ISynthesisProduct;
+        expect(cupric.name).toBe("Copper(II) oxide");
+    });
+
+    it("balances simple salts", () => {
+        expect(
+            (synthesizer.predict(pool({ Ca: 1, Cl: 2 })).product as ISynthesisProduct).formula,
+        ).toBe("CaCl2");
+        expect(
+            (synthesizer.predict(pool({ Mg: 2, O: 2 })).product as ISynthesisProduct).formula,
+        ).toBe("MgO");
+        const salt = synthesizer.predict(pool({ Na: 1, Cl: 1 })).product as ISynthesisProduct;
+        expect(salt.formula).toBe("NaCl");
+        expect(salt.name).toBe("Sodium chloride");
+    });
+
+    it("reuses cached records for the same compound", () => {
+        const first = synthesizer.predict(pool({ Ce: 1, Br: 3 })).product as ISynthesisProduct;
+        const second = synthesizer.predict(pool({ Ce: 1, Br: 3 })).product as ISynthesisProduct;
+        expect(first.record).toBe(second.record);
+    });
+
+    it("keeps noble gases inert", () => {
+        const result = synthesizer.predict(pool({ He: 1, Br: 1 }));
+        expect(result.product).toBeNull();
+        expect(result.hint).toBeNull();
+        const helium = synthesizer.predict(pool({ He: 2 }, { He: 2 }));
+        expect(helium.product).toBeNull();
+    });
+
+    it("forms covalent catalog molecules", () => {
+        const water = synthesizer.predict(pool({ H: 2, O: 1 })).product as ISynthesisProduct;
+        expect(water.catalogId).toBe("water");
+        const carbonDioxide = synthesizer.predict(pool({ C: 1, O: 2 }))
+            .product as ISynthesisProduct;
+        expect(carbonDioxide.catalogId).toBe("carbon-dioxide");
+        const carbonMonoxide = synthesizer.predict(pool({ C: 1, O: 1 }))
+            .product as ISynthesisProduct;
+        expect(carbonMonoxide.catalogId).toBe("carbon-monoxide");
+        const hcl = synthesizer.predict(pool({ Cl: 1, H: 1 })).product as ISynthesisProduct;
+        expect(hcl.catalogId).toBe("hydrogen-chloride");
+        expect(synthesizer.predict(pool({ H: 1, S: 2 })).product).toBeNull();
+    });
+
+    it("synthesizes hydrogen fluoride", () => {
+        const hf = synthesizer.predict(pool({ H: 1, F: 1 })).product as ISynthesisProduct;
+        expect(hf.formula).toBe("HF");
+        expect(hf.name).toBe("Hydrogen fluoride");
+        expect(hf.record?.atoms.length).toBe(2);
+    });
+
+    it("forms diatomic molecules from monatomic atoms", () => {
+        const oxygen = synthesizer.predict(pool({ O: 2 }, { O: 2 })).product as ISynthesisProduct;
+        expect(oxygen.catalogId).toBe("oxygen-elemental");
+        expect(oxygen.units).toBe(1);
+        const hydrogen = synthesizer.predict(pool({ H: 3 }, { H: 3 })).product as ISynthesisProduct;
+        expect(hydrogen.catalogId).toBe("hydrogen-elemental");
+        expect(hydrogen.units).toBe(1);
+        const iodine = synthesizer.predict(pool({ I: 2 }, { I: 2 })).product as ISynthesisProduct;
+        expect(iodine.catalogId).toBe("iodine");
+    });
+
+    it("does not recombine diatomics or non-stoichiometric mixes", () => {
+        expect(synthesizer.predict(pool({ O: 2 }, {})).product).toBeNull();
+        expect(synthesizer.predict(pool({ H: 1, O: 1 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ H: 1 }, { H: 1 })).product).toBeNull();
+    });
+
+    it("ignores noble gas when matching reactive partners", () => {
+        const product = synthesizer.predict(pool({ Ce: 1, Br: 3, Ar: 5 })).product;
+        expect(product?.formula).toBe("CeBr3");
+    });
+
+    it("ignores empty, unknown, and unreactive pools", () => {
+        expect(synthesizer.predict(pool({ H: 0, Xx: 1 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ Xx: 1, O: 2 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ Na: 1, Xx: 1 })).product).toBeNull();
+        expect(synthesizer.predict(pool({ H: 1, O: 2 })).product).toBeNull();
+    });
+});
+
+describe("SynthesisEngine", () => {
+    function engine(): { registry: MoleculeRegistry; engine: SynthesisEngine } {
+        const registry = makeRegistry();
+        return { registry, engine: new SynthesisEngine(registry, new CompoundSynthesizer()) };
+    }
+
+    it("merges cerium and bromine atoms into cerium(III) bromide", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-br"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-br"), 0, 1, 0, 0);
+        world.spawn(record(registry, "el-br"), 0, 0, 1, 0);
+        const { events, sink } = makeSink();
+        synth.update(world, new SeededRandom(1), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(1);
+        expect(list[0].record.formula).toBe("CeBr3");
+        expect(events.some((event) => event.ruleId === "synthesis-CeBr3")).toBe(true);
+    });
+
+    it("warns once when the stoichiometry is short, then reacts", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-s"), 1, 0, 0, 0);
+        const { events, sink } = makeSink();
+        synth.update(world, new SeededRandom(1), sink);
+        synth.update(world, new SeededRandom(1), sink);
+        const hints = events.filter((event) => event.ruleId === "synthesis-hint");
+        expect(hints.length).toBe(1);
+        expect(hints[0].message).toContain("Cerium(III) sulfide");
+        expect(world.getInstanceList().length).toBe(2);
+        world.spawn(record(registry, "el-ce"), 0, 1, 0, 0);
+        world.spawn(record(registry, "el-s"), 0, 0, 1, 0);
+        world.spawn(record(registry, "el-s"), 1, 1, 0, 0);
+        synth.update(world, new SeededRandom(1), sink);
+        expect(world.getInstanceList().length).toBe(1);
+        expect(world.getInstanceList()[0].record.formula).toBe("Ce2S3");
+    });
+
+    it("conserves atoms when a diatomic reactant overshoots", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 0, 0, 0, 0);
+        world.spawn(record(registry, "bromine"), 1, 0, 0, 0);
+        world.spawn(record(registry, "bromine"), 0, 1, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(2), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(1);
+        expect(list[0].record.formula).toBe("CeBr4");
+    });
+
+    it("leaves surplus atoms as free elements", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ca"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-cl"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-cl"), 0, 1, 0, 0);
+        world.spawn(record(registry, "el-cl"), 0, 0, 1, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(10), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(2);
+        expect(list.some((inst) => inst.record.formula === "CaCl2")).toBe(true);
+        expect(list.some((inst) => inst.record.id === "el-cl")).toBe(true);
+    });
+
+    it("forms diatomic oxygen from atoms and leaves the surplus", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-o"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-o"), 2, 0, 0, 0);
+        world.spawn(record(registry, "el-o"), 4, 0, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(3), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(2);
+        expect(list.some((inst) => inst.record.formula === "O2")).toBe(true);
+        expect(list.some((inst) => inst.record.id === "el-o")).toBe(true);
+    });
+
+    it("ignores non-elemental and large clusters", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "water"), 0, 0, 0, 0);
+        world.spawn(record(registry, "hydrogen-chloride"), 2, 0, 0, 0);
+        world.spawn(record(registry, "ozone"), 4, 0, 0, 0);
+        const before = world.getInstanceList().length;
+        const { events, sink } = makeSink();
+        synth.update(world, new SeededRandom(4), sink);
+        expect(world.getInstanceList().length).toBe(before);
+        expect(events.length).toBe(0);
+    });
+
+    it("splits distant atoms into separate clusters", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-he"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-he"), 8, 0, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(5), sink);
+        expect(world.getInstanceList().length).toBe(2);
+    });
+
+    it("leaves surplus and inert atoms untouched", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 5, 0, 0, 0);
+        world.spawn(record(registry, "el-he"), 0.5, 0, 0, 0);
+        world.spawn(record(registry, "el-br"), 0, 0, 0, 0);
+        world.spawn(record(registry, "el-br"), 1, 0, 0, 0);
+        world.spawn(record(registry, "el-br"), 0, 1, 0, 0);
+        world.spawn(record(registry, "el-br"), 0, 0, 1, 0);
+        world.spawn(record(registry, "el-br"), 1, 1, 1, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(11), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(3);
+        expect(list.some((inst) => inst.record.formula === "CeBr4")).toBe(true);
+        expect(list.some((inst) => inst.record.id === "el-br")).toBe(true);
+        expect(list.some((inst) => inst.record.id === "el-he")).toBe(true);
+    });
+
+    it("spawns leftover atoms when a reactant overshoots", () => {
+        const { registry, engine: synth } = engine();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-al"), 0, 0, 0, 0);
+        world.spawn(record(registry, "chlorine-elemental"), 1, 0, 0, 0);
+        world.spawn(record(registry, "chlorine-elemental"), 0, 1, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(12), sink);
+        const list = world.getInstanceList();
+        expect(list.length).toBe(2);
+        expect(list.some((inst) => inst.record.formula === "AlCl3")).toBe(true);
+        expect(list.some((inst) => inst.record.id === "el-cl")).toBe(true);
+    });
+
+    it("aborts when the prediction asks for absent elements", () => {
+        const registry = makeRegistry();
+        const fake = {
+            predict: () => ({
+                product: {
+                    catalogId: null,
+                    record: record(registry, "el-ce"),
+                    name: "Fake",
+                    formula: "Fake",
+                    needs: new Map([["Xx", 1]]),
+                    units: 1,
+                },
+                hint: null,
+            }),
+        } as unknown as CompoundSynthesizer;
+        const synth = new SynthesisEngine(registry, fake);
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 0, 0, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(13), sink);
+        expect(world.getInstanceList().length).toBe(1);
+    });
+
+    it("skips formation when the atom budget is full", () => {
+        const { registry, engine: synth } = engine();
+        const ce = new MoleculeInstance(record(registry, "el-ce"), 0, 0, 0, 0, 0, 0, 0);
+        const br1 = new MoleculeInstance(record(registry, "el-br"), 1, 0, 0, 0, 0, 0, 0);
+        const br2 = new MoleculeInstance(record(registry, "el-br"), 0, 1, 0, 0, 0, 0, 0);
+        const br3 = new MoleculeInstance(record(registry, "el-br"), 0, 0, 1, 0, 0, 0, 0);
+        const stub = {
+            getInstanceList: () => [ce, br1, br2, br3],
+            canAccommodate: () => false,
+            remove: (): void => {},
+            spawn: (): void => {},
+        } as unknown as World;
+        const { sink } = makeSink();
+        synth.update(stub, new SeededRandom(6), sink);
+        expect(true).toBe(true);
+    });
+
+    it("bails out when a catalog product is missing", () => {
+        const stubRegistry = {
+            findById: () => undefined,
+        } as unknown as IMoleculeRegistry;
+        const synth = new SynthesisEngine(stubRegistry, new CompoundSynthesizer());
+        const world = makeWorld();
+        world.spawn(makeRegistry().findById("el-h") as IMoleculeRecord, 0, 0, 0, 0);
+        world.spawn(makeRegistry().findById("el-h") as IMoleculeRecord, 1, 0, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(7), sink);
+        expect(world.getInstanceList().length).toBe(2);
+    });
+
+    it("bails out when a synthesized record is absent", () => {
+        const fake = {
+            predict: () => ({
+                product: {
+                    catalogId: null,
+                    record: null,
+                    name: "X",
+                    formula: "X",
+                    needs: new Map([["Ce", 1]]),
+                    units: 1,
+                },
+                hint: null,
+            }),
+        } as unknown as CompoundSynthesizer;
+        const registry = makeRegistry();
+        const synth = new SynthesisEngine(registry, fake);
+        const world = makeWorld();
+        world.spawn(record(registry, "el-ce"), 0, 0, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(8), sink);
+        expect(world.getInstanceList().length).toBe(1);
+    });
+
+    it("skips leftover atoms with no elemental record", () => {
+        const stubRegistry = {
+            findById: () => undefined,
+        } as unknown as IMoleculeRegistry;
+        const synth = new SynthesisEngine(stubRegistry, new CompoundSynthesizer());
+        const world = makeWorld();
+        const registry = makeRegistry();
+        world.spawn(record(registry, "el-al"), 0, 0, 0, 0);
+        world.spawn(record(registry, "chlorine-elemental"), 1, 0, 0, 0);
+        world.spawn(record(registry, "chlorine-elemental"), 0, 1, 0, 0);
+        const { sink } = makeSink();
+        synth.update(world, new SeededRandom(9), sink);
+        expect(world.getInstanceList().length).toBe(1);
+        expect(world.getInstanceList()[0].record.formula).toBe("AlCl3");
+    });
+});

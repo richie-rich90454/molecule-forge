@@ -1,7 +1,46 @@
 import type { IMoleculeRecord } from "../chem/MoleculeRecord";
 
+interface IRecordMetrics {
+    readonly radius: number;
+    readonly netCharge: number;
+}
+
 export class MoleculeInstance {
     private static nextId = 1;
+    private static readonly metricsCache = new WeakMap<IMoleculeRecord, IRecordMetrics>();
+
+    private static metricsOf(record: IMoleculeRecord): IRecordMetrics {
+        let metrics = MoleculeInstance.metricsCache.get(record);
+        if (metrics === undefined) {
+            let cx = 0;
+            let cy = 0;
+            let cz = 0;
+            let netCharge = 0;
+            for (const atom of record.atoms) {
+                cx += atom.x;
+                cy += atom.y;
+                cz += atom.z;
+                netCharge += atom.charge;
+            }
+            const n = Math.max(1, record.atoms.length);
+            cx /= n;
+            cy /= n;
+            cz /= n;
+            let radius = 1.5;
+            for (const atom of record.atoms) {
+                const dx = atom.x - cx;
+                const dy = atom.y - cy;
+                const dz = atom.z - cz;
+                const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (d > radius) {
+                    radius = d;
+                }
+            }
+            metrics = { radius, netCharge };
+            MoleculeInstance.metricsCache.set(record, metrics);
+        }
+        return metrics;
+    }
 
     public readonly id: number;
     public readonly record: IMoleculeRecord;
@@ -65,37 +104,12 @@ export class MoleculeInstance {
         this.avz = 0;
         this.alive = true;
         this.jitterSeed = jitterSeed;
-        let cx = 0;
-        let cy = 0;
-        let cz = 0;
-        for (const atom of record.atoms) {
-            cx += atom.x;
-            cy += atom.y;
-            cz += atom.z;
-        }
-        const n = Math.max(1, record.atoms.length);
-        cx /= n;
-        cy /= n;
-        cz /= n;
-        let maxD = 1.5;
-        for (const atom of record.atoms) {
-            const dx = atom.x - cx;
-            const dy = atom.y - cy;
-            const dz = atom.z - cz;
-            const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (d > maxD) {
-                maxD = d;
-            }
-        }
-        this.radius = maxD;
+        const metrics = MoleculeInstance.metricsOf(record);
+        this.radius = metrics.radius;
         this.mass = record.mass;
         this.donors = record.properties.hBondDonors;
         this.acceptors = record.properties.hBondAcceptors;
-        let charge = 0;
-        for (const atom of record.atoms) {
-            charge += atom.charge;
-        }
-        this.charge = charge;
+        this.charge = metrics.netCharge;
     }
 
     public getDonors(): number {

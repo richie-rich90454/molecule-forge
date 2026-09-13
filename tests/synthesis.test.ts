@@ -342,12 +342,21 @@ describe("CompoundSynthesizer", () => {
         expect(antimonate.formula).toBe("Na3SbO4");
     });
 
-    it("does not recombine diatomics or non-stoichiometric mixes", () => {
+    it("leaves surplus atoms aside instead of forcing odd ratios", () => {
         expect(synthesizer.predict(pool({ O: 2 }, {})).product).toBeNull();
         expect(synthesizer.predict(pool({ H: 1, O: 1 })).product).toBeNull();
         expect(synthesizer.predict(pool({ H: 1 }, { H: 1 })).product).toBeNull();
-        expect(synthesizer.predict(pool({ H: 2, Cl: 1 })).product).toBeNull();
-        expect(synthesizer.predict(pool({ H: 3, O: 1 })).product).toBeNull();
+        const hydrogenChloride = synthesizer.predict(pool({ H: 2, Cl: 1 }))
+            .product as ISynthesisProduct;
+        expect(hydrogenChloride.catalogId).toBe("hydrogen-chloride");
+        expect(hydrogenChloride.units).toBe(1);
+        const water = synthesizer.predict(pool({ H: 3, O: 1 })).product as ISynthesisProduct;
+        expect(water.catalogId).toBe("water");
+        expect(water.units).toBe(1);
+        const scaled = synthesizer.predict(pool({ H: 4, O: 3 })).product as ISynthesisProduct;
+        expect(scaled.catalogId).toBe("water");
+        expect(scaled.units).toBe(2);
+        expect(synthesizer.predict(pool({ H: 1, N: 1 })).product).toBeNull();
     });
 
     it("scales covalent formulas to the available stoichiometry", () => {
@@ -371,10 +380,13 @@ describe("CompoundSynthesizer", () => {
         ).toBe("alkane-c1");
         expect(
             (synthesizer.predict(pool({ H: 2, O: 2 })).product as ISynthesisProduct).catalogId,
-        ).toBe("hydrogen-peroxide");
+        ).toBe("water");
         expect(
             (synthesizer.predict(pool({ N: 2, O: 1 })).product as ISynthesisProduct).catalogId,
         ).toBe("nitrous-oxide");
+        expect(
+            (synthesizer.predict(pool({ N: 2, O: 2 })).product as ISynthesisProduct).catalogId,
+        ).toBe("nitrogen-dioxide");
     });
 
     it("forms noble gas fluorides only for Xe, Kr, and Rn", () => {
@@ -387,6 +399,9 @@ describe("CompoundSynthesizer", () => {
         const xef6 = synthesizer.predict(pool({ Xe: 1, F: 6 })).product as ISynthesisProduct;
         expect(xef6.formula).toBe("XeF6");
         expect(xef6.record?.atoms.length).toBe(7);
+        const excess = synthesizer.predict(pool({ Xe: 2, F: 6 })).product as ISynthesisProduct;
+        expect(excess.formula).toBe("XeF6");
+        expect(excess.units).toBe(1);
         expect(
             (synthesizer.predict(pool({ Kr: 1, F: 2 })).product as ISynthesisProduct).formula,
         ).toBe("KrF2");

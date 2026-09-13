@@ -14,7 +14,8 @@ export type MoleculeCategory =
     | "toxins"
     | "exotic"
     | "biomolecules"
-    | "natural";
+    | "natural"
+    | "elemental";
 
 export type BondOrder = 1 | 2 | 3 | 4;
 

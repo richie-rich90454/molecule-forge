@@ -16,6 +16,10 @@ Atoms cost one draw call per element present, bonds one per bond-order bucket, p
 
 A three-way tool switch removes all click ambiguity. Orbit mode navigates and inspects atoms. Place mode disengages camera drag so painting never orbits by accident. Erase mode deletes on click or drag. Wheel zoom and middle-drag pan stay live in every mode. Atom picking projects world positions to screen space and takes the nearest candidate within a pixel threshold, which stays exact at any DPI.
 
+## Typography
+
+The interface uses two families only, `Noto Sans` for text and `Noto Sans Mono` for numeric readouts and the log, declared as CSS custom properties. No web font is fetched: the single-file build references the installed families and lets the generic `sans-serif` and `monospace` fallbacks cover a machine without them, so the app never blocks on the network for text.
+
 ## Budgets
 
 Frame budget is 16.7 ms at 60 fps down to 2.78 ms at 360 fps. If the one-second average exceeds 12 ms, quality steps down once per second; it steps back up after four calm seconds. The HUD reports fps, live count, and quality level so tuning is visible.

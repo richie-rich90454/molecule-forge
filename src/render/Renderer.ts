@@ -149,9 +149,12 @@ export class Renderer {
     }
 
     public screenToWorld(clientX: number, clientY: number, depth: number): THREE.Vector3 {
+        this.camera.updateMatrixWorld();
         const rect = this.canvas.getBoundingClientRect();
-        const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
-        const ny = -((clientY - rect.top) / rect.height) * 2 + 1;
+        const width = rect.width > 0 ? rect.width : 1;
+        const height = rect.height > 0 ? rect.height : 1;
+        const nx = ((clientX - rect.left) / width) * 2 - 1;
+        const ny = -((clientY - rect.top) / height) * 2 + 1;
         this.raycaster.setFromCamera(new THREE.Vector2(nx, ny), this.camera);
         const target = new THREE.Vector3();
         this.raycaster.ray.at(depth, target);
@@ -164,9 +167,10 @@ export class Renderer {
         instances: ReadonlyArray<MoleculeInstance>,
         maxDistancePx: number,
     ): IPickResult | null {
+        this.camera.updateMatrixWorld();
         const rect = this.canvas.getBoundingClientRect();
-        const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
-        const ny = -((clientY - rect.top) / rect.height) * 2 + 1;
+        const width = rect.width > 0 ? rect.width : 1;
+        const height = rect.height > 0 ? rect.height : 1;
         let best: IPickResult | null = null;
         for (const inst of instances) {
             if (!inst.alive) {
@@ -179,8 +183,8 @@ export class Renderer {
                 if (this.screenVec.z > 1) {
                     continue;
                 }
-                const sx = (this.screenVec.x * 0.5 + 0.5) * rect.width;
-                const sy = (-this.screenVec.y * 0.5 + 0.5) * rect.height;
+                const sx = (this.screenVec.x * 0.5 + 0.5) * width;
+                const sy = (-this.screenVec.y * 0.5 + 0.5) * height;
                 const dx = sx - (clientX - rect.left);
                 const dy = sy - (clientY - rect.top);
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -189,8 +193,6 @@ export class Renderer {
                 }
             }
         }
-        void nx;
-        void ny;
         return best;
     }
 

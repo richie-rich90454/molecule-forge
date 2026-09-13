@@ -24,22 +24,31 @@ export function AppShell(properties: {
     return (
         <div class="mf-app">
             <header class="mf-header">
-                <span class="mf-brand">Molecule Forge</span>
+                <div class="mf-brand">
+                    <span class="mf-brand-mark" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                    </span>
+                    <span class="mf-brand-text">Molecule Forge</span>
+                </div>
                 <PresetsView vm={vm} />
                 <span class="mf-spacer" />
-                <button class="mf-btn" onClick={() => vm.rerollSeed()} title="Reroll seed">
-                    Seed {vm.getSeed()}
-                </button>
-                <button class="mf-btn" onClick={() => vm.togglePause()} title="Pause or resume">
-                    {vm.getPaused() ? "Play" : "Pause"}
-                </button>
-                <button
-                    class="mf-btn"
-                    onClick={() => callbacks.onResetCamera()}
-                    title="Reset camera"
-                >
-                    View
-                </button>
+                <div class="mf-header-actions">
+                    <button class="mf-btn" onClick={() => vm.rerollSeed()} title="Reroll seed">
+                        Seed {vm.getSeed()}
+                    </button>
+                    <button class="mf-btn" onClick={() => vm.togglePause()} title="Pause or resume">
+                        {vm.getPaused() ? "Play" : "Pause"}
+                    </button>
+                    <button
+                        class="mf-btn"
+                        onClick={() => callbacks.onResetCamera()}
+                        title="Reset camera"
+                    >
+                        View
+                    </button>
+                </div>
             </header>
             <div class="mf-main">
                 <aside class="mf-library">

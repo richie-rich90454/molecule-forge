@@ -133,6 +133,7 @@ export class DecompositionEngine {
         record: IMoleculeRecord,
     ): readonly [ReadonlyArray<number>, ReadonlyArray<number>] | null {
         const total = record.atoms.length;
+        const adjacency = DecompositionEngine.adjacency(record);
         let best: readonly [ReadonlyArray<number>, ReadonlyArray<number>] | null = null;
         let bestBalance = Infinity;
         for (let bondIndex = 0; bondIndex < record.bonds.length; bondIndex++) {
@@ -140,7 +141,7 @@ export class DecompositionEngine {
             if (record.atoms[bond.a].el === "H" || record.atoms[bond.b].el === "H") {
                 continue;
             }
-            const group = DecompositionEngine.component(record, bondIndex, bond.a);
+            const group = DecompositionEngine.component(adjacency, bondIndex, bond.a);
             if (group.length === total) {
                 continue;
             }
@@ -161,15 +162,16 @@ export class DecompositionEngine {
     }
 
     private static component(
-        record: IMoleculeRecord,
+        adjacency: Array<Array<{ to: number; bond: number }>>,
         excludedBond: number,
         start: number,
     ): number[] {
-        const adjacency = DecompositionEngine.adjacency(record);
         const seen = new Set<number>([start]);
         const queue: number[] = [start];
-        while (queue.length > 0) {
-            const current = queue.shift() as number;
+        let head = 0;
+        while (head < queue.length) {
+            const current = queue[head];
+            head++;
             for (const edge of adjacency[current]) {
                 if (edge.bond === excludedBond || seen.has(edge.to)) {
                     continue;

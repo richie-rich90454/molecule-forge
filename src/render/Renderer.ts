@@ -226,6 +226,13 @@ export class Renderer {
             if (!inst.alive) {
                 continue;
             }
+            if (
+                !Number.isFinite(
+                    inst.px + inst.py + inst.pz + inst.qw + inst.qx + inst.qy + inst.qz,
+                )
+            ) {
+                continue;
+            }
             const ix = inst.prevPx + (inst.px - inst.prevPx) * alpha;
             const iy = inst.prevPy + (inst.py - inst.prevPy) * alpha;
             const iz = inst.prevPz + (inst.pz - inst.prevPz) * alpha;

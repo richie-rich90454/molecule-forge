@@ -33,17 +33,27 @@ pub struct World {
 
 impl World {
     pub fn new() -> Self {
-        Self { bodies: Vec::new(), next_id: 1, box_size: 60.0, time: 0.0 }
+        Self {
+            bodies: Vec::new(),
+            next_id: 1,
+            box_size: 60.0,
+            time: 0.0,
+        }
     }
 
     pub fn len(&self) -> usize {
         self.bodies.iter().filter(|b| b.alive).count()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn spawn(&mut self, x: f64, y: f64, z: f64, radius: f64, mass: f64) -> usize {
         let id = self.next_id;
         self.next_id += 1;
-        self.bodies.push(MoleculeBody::new(id, x, y, z, radius, mass));
+        self.bodies
+            .push(MoleculeBody::new(id, x, y, z, radius, mass));
         id
     }
 

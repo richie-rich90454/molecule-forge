@@ -14,6 +14,8 @@
     --vp-c-text-3: #6b7386;
     --vp-code-block-bg: #0b0d17;
     --vp-code-line-highlight-color: rgba(172, 225, 175, 0.08);
+    --vp-font-family-base: "Noto Sans", sans-serif;
+    --vp-font-family-mono: "Noto Sans Mono", monospace;
 }
 
 .dark {
@@ -39,5 +41,5 @@ table {
 }
 
 code {
-    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-family: "Noto Sans Mono", monospace;
 }

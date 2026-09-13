@@ -43,7 +43,7 @@ export class MoleculeFactory {
         const mass = MoleculeFactory.computeMass(allAtoms);
         const properties = MoleculeFactory.estimateProperties(spec, bonds, hCounts);
         const atomSpecs = MoleculeFactory.toAtomSpecs(spec, bonds, allAtoms, charges);
-        const bondSpecs = MoleculeFactory.toBondSpecs(bonds);
+        const bondSpecs = MoleculeFactory.toBondSpecs(withH.bonds);
         return {
             id: spec.id,
             name: spec.name,
@@ -442,16 +442,21 @@ export class MoleculeFactory {
 
     private static addHydrogens(
         spec: ICompactMoleculeSpec,
-        bonds: ReadonlyArray<{ a: number; b: number; order: number }>,
+        bonds: ReadonlyArray<{ a: number; b: number; order: number; stereo: string | null }>,
         placed: IPlacedAtom[],
         hCounts: ReadonlyArray<number>,
-    ): { atoms: IPlacedAtom[]; bonds: Array<{ a: number; b: number; order: number }> } {
+    ): {
+        atoms: IPlacedAtom[];
+        bonds: Array<{ a: number; b: number; order: number; stereo: string | null }>;
+    } {
         const result = [...placed];
-        const allBonds: Array<{ a: number; b: number; order: number }> = bonds.map((b) => ({
-            a: b.a,
-            b: b.b,
-            order: b.order,
-        }));
+        const allBonds: Array<{ a: number; b: number; order: number; stereo: string | null }> =
+            bonds.map((b) => ({
+                a: b.a,
+                b: b.b,
+                order: b.order,
+                stereo: b.stereo,
+            }));
         const rng = MoleculeFactory.mulberry(MoleculeFactory.hashSeed(spec.id + ":h"));
         const adjacency: number[][] = [];
         for (let i = 0; i < spec.heavy.length; i++) {
@@ -490,7 +495,7 @@ export class MoleculeFactory {
             const len = ElementRegistry.bondLength(spec.heavy[i], "H", 1);
             for (let k = 0; k < count && k < scored.length; k++) {
                 const dir = scored[k].dir;
-                allBonds.push({ a: i, b: result.length, order: 1 });
+                allBonds.push({ a: i, b: result.length, order: 1, stereo: null });
                 result.push({
                     el: "H",
                     x: p.x + dir[0] * len,

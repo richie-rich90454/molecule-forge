@@ -4,6 +4,7 @@ import { MoleculeCatalog } from "../chem/MoleculeCatalog";
 import { ElementChemistry } from "../chem/ElementChemistry";
 import { Thermochemistry } from "../chem/Thermochemistry";
 import { ReactionGate } from "./ReactionGate";
+import { SpatialHashGrid } from "./SpatialHashGrid";
 import type { SeededRandom } from "./SeededRandom";
 import type { World } from "./World";
 import type { MoleculeInstance } from "./MoleculeInstance";
@@ -34,25 +35,58 @@ interface ISubstitution {
     readonly enthalpy: number;
 }
 
+interface IReagent {
+    readonly inst: MoleculeInstance;
+    readonly element: string;
+    readonly order: number;
+}
+
 export class OxidationEngine {
     private readonly registry: IMoleculeRegistry;
     private readonly factory: MoleculeFactory;
     private readonly radius: number;
     private readonly hydrideCache: Map<string, IMoleculeRecord>;
+    private readonly planCache: Map<string, ICombustionPlan | null>;
+    private readonly grid: SpatialHashGrid<MoleculeInstance>;
+    private readonly nearby: MoleculeInstance[];
+    private readonly reagents: IReagent[];
 
     public constructor(registry: IMoleculeRegistry, factory: MoleculeFactory, radius: number = 7) {
         this.registry = registry;
         this.factory = factory;
         this.radius = radius;
         this.hydrideCache = new Map();
+        this.planCache = new Map();
+        this.grid = new SpatialHashGrid<MoleculeInstance>(radius);
+        this.nearby = [];
+        this.reagents = [];
     }
 
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
         const instances = world.getInstanceList();
+        this.grid.clear();
+        for (const inst of instances) {
+            this.grid.insert(inst);
+        }
         if (this.halogenate(world, instances, rng, sink)) {
             return;
         }
         this.combust(world, instances, rng, sink);
+    }
+
+    private nearbyOf(center: MoleculeInstance): MoleculeInstance[] {
+        this.grid.queryRadius(center.px, center.py, center.pz, this.radius, this.nearby);
+        return this.nearby;
+    }
+
+    private planOf(record: IMoleculeRecord): ICombustionPlan | null {
+        const cached = this.planCache.get(record.id);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const plan = OxidationEngine.combustionPlan(record);
+        this.planCache.set(record.id, plan);
+        return plan;
     }
 
     private halogenate(
@@ -61,43 +95,38 @@ export class OxidationEngine {
         rng: SeededRandom,
         sink: IReactionSink,
     ): boolean {
-        const reagents = instances
-            .map((inst) => ({ inst, info: OxidationEngine.reagentOf(inst.record) }))
-            .filter(
-                (entry) =>
-                    entry.info !== null &&
-                    HALOGENS.has((entry.info as { element: string }).element),
-            );
+        const reagents = this.reagents;
+        reagents.length = 0;
+        for (const inst of instances) {
+            const info = OxidationEngine.reagentOf(inst.record);
+            if (info !== null && HALOGENS.has(info.element)) {
+                reagents.push({ inst, element: info.element, order: info.order });
+            }
+        }
         if (reagents.length === 0) {
             return false;
         }
-        for (const { inst: reagent, info } of reagents) {
-            const target = info as { element: string; order: number };
-            for (const other of instances) {
+        for (const { inst: reagent, element, order } of reagents) {
+            const nearby = this.nearbyOf(reagent);
+            nearby.sort(OxidationEngine.byId);
+            for (const other of nearby) {
                 if (other.id === reagent.id) {
                     continue;
                 }
-                if (OxidationEngine.distanceSq(reagent, other) > this.radius * this.radius) {
-                    continue;
-                }
-                const substitution = OxidationEngine.substitute(
-                    other.record,
-                    target.element,
-                    target.order,
-                );
+                const substitution = OxidationEngine.substitute(other.record, element, order);
                 if (substitution === null) {
                     continue;
                 }
                 if (
                     !OxidationEngine.allow(
                         substitution.enthalpy,
-                        ElementChemistry.get(target.element).electronegativity,
+                        ElementChemistry.get(element).electronegativity,
                         world,
                     )
                 ) {
                     continue;
                 }
-                this.react(world, reagent, other, target.element, substitution, rng, sink);
+                this.react(world, reagent, other, element, substitution, rng, sink);
                 return true;
             }
         }
@@ -117,33 +146,46 @@ export class OxidationEngine {
         if (temperature < COMBUSTION_IGNITION && world.params.spark <= 0.05) {
             return;
         }
-        const oxygen = instances.filter((inst) => OxidationEngine.isDioxygen(inst.record));
-        if (oxygen.length === 0) {
+        let hasOxygen = false;
+        for (const inst of instances) {
+            if (OxidationEngine.isDioxygen(inst.record)) {
+                hasOxygen = true;
+                break;
+            }
+        }
+        if (!hasOxygen) {
             return;
         }
-        const radiusSq = this.radius * this.radius;
         for (const fuel of instances) {
-            const plan = OxidationEngine.combustionPlan(fuel.record);
+            const plan = this.planOf(fuel.record);
             if (plan === null) {
                 continue;
             }
-            const nearby = oxygen.filter(
-                (inst) => OxidationEngine.distanceSq(fuel, inst) <= radiusSq,
-            );
-            if (nearby.length < plan.oxygen) {
+            const nearby = this.nearbyOf(fuel);
+            nearby.sort(OxidationEngine.byId);
+            const oxygen = nearby.filter((inst) => OxidationEngine.isDioxygen(inst.record));
+            if (oxygen.length < plan.oxygen) {
                 continue;
             }
-            const same = instances.filter(
-                (inst) =>
-                    inst.record.id === fuel.record.id &&
-                    OxidationEngine.distanceSq(fuel, inst) <= radiusSq,
-            );
+            const same = nearby.filter((inst) => inst.record.id === fuel.record.id);
             if (same.length < plan.fuelUnits) {
                 continue;
             }
-            this.burn(world, fuel, plan, nearby, same, rng, sink);
+            this.burn(
+                world,
+                fuel,
+                plan,
+                oxygen.slice(0, plan.oxygen),
+                same.slice(0, plan.fuelUnits),
+                rng,
+                sink,
+            );
             return;
         }
+    }
+
+    private static byId(a: MoleculeInstance, b: MoleculeInstance): number {
+        return a.id - b.id;
     }
 
     private burn(
@@ -304,13 +346,6 @@ export class OxidationEngine {
         }
         const count = Math.max(1, instances.length);
         return { x: x / count, y: y / count, z: z / count };
-    }
-
-    private static distanceSq(a: MoleculeInstance, b: MoleculeInstance): number {
-        const dx = a.px - b.px;
-        const dy = a.py - b.py;
-        const dz = a.pz - b.pz;
-        return dx * dx + dy * dy + dz * dz;
     }
 
     private static allow(enthalpy: number, electronegativity: number, world: World): boolean {

@@ -6,6 +6,12 @@ import type { IReactionEvent, IReactionSink } from "../sim/ReactionEngine";
 import { ReactionCatalog, type IReactionRule } from "../sim/ReactionCatalog";
 import { ChamberAnalysis, LabRecorder, type IMeasureData } from "../sim/LabRecorder";
 import { ElementReference, type IReferenceData } from "../chem/ElementReference";
+import { MoleculeExplainer } from "../chem/MoleculeExplainer";
+import {
+    ReactionExplainer,
+    type IExplainData,
+    type IReactionExplanation,
+} from "../chem/ReactionExplainer";
 import { SeededRandom } from "../sim/SeededRandom";
 import type { World } from "../sim/World";
 import type { SoundEngine } from "../audio/SoundEngine";
@@ -14,6 +20,7 @@ export interface ILogEntry {
     readonly time: number;
     readonly text: string;
     readonly flash: boolean;
+    readonly event?: IReactionEvent;
 }
 
 export interface IEffectSink {
@@ -28,7 +35,7 @@ export interface ISelectedAtom {
 }
 
 export type CanvasTool = "orbit" | "place" | "erase";
-export type PanelMode = "library" | "analyze" | "reference";
+export type PanelMode = "library" | "analyze" | "reference" | "explain";
 
 const MAX_INSTANCES = 2500;
 
@@ -110,6 +117,9 @@ export class AppViewModel implements IReactionSink {
     public readonly getLabRevision: () => number;
     public readonly setLabRevision: (value: number) => void;
     public readonly getMeasureData: () => IMeasureData;
+    public readonly getExplainReaction: () => IReactionExplanation | null;
+    public readonly setExplainReaction: (value: IReactionExplanation | null) => void;
+    public readonly getExplainData: () => IExplainData;
 
     private readonly recorder: LabRecorder;
     private readonly rules: ReadonlyArray<IReactionRule>;
@@ -236,8 +246,20 @@ export class AppViewModel implements IReactionSink {
         const [getLabRevision, setLabRevision] = createSignal<number>(0);
         this.getLabRevision = getLabRevision;
         this.setLabRevision = setLabRevision;
+        const [getExplainReaction, setExplainReaction] = createSignal<IReactionExplanation | null>(
+            null,
+        );
+        this.getExplainReaction = getExplainReaction;
+        this.setExplainReaction = setExplainReaction;
         this.getFilteredRecords = createMemo(() => {
             return registry.getRecords(getCategory());
+        });
+        this.getExplainData = createMemo(() => {
+            const record = registry.findById(this.getSelectedId());
+            return {
+                reaction: this.getExplainReaction(),
+                molecule: record === undefined ? null : MoleculeExplainer.explain(record),
+            };
         });
         this.getMeasureData = createMemo(() => {
             this.getLabRevision();
@@ -276,7 +298,8 @@ export class AppViewModel implements IReactionSink {
     }
 
     public publish(event: IReactionEvent): void {
-        this.addLog(event.message, true);
+        this.addLog(event.message, true, event);
+        this.setExplainReaction(ReactionExplainer.fromEvent(event, this.rules, this.registry));
         this.recorder.noteEvent(event, this.world.time);
         this.setLabRevision(this.getLabRevision() + 1);
         this.effects.flash(
@@ -306,13 +329,18 @@ export class AppViewModel implements IReactionSink {
         this.setCount(this.world.countAlive());
     }
 
-    public addLog(text: string, flash: boolean): void {
+    public addLog(text: string, flash: boolean, event?: IReactionEvent): void {
         this.logCounter++;
-        const entries = [...this.getLog(), { time: this.logCounter, text, flash }];
+        const entries = [...this.getLog(), { time: this.logCounter, text, flash, event }];
         while (entries.length > 100) {
             entries.shift();
         }
         this.setLog(entries);
+    }
+
+    public explainEvent(event: IReactionEvent): void {
+        this.setExplainReaction(ReactionExplainer.fromEvent(event, this.rules, this.registry));
+        this.setPanel("explain");
     }
 
     public selectCategory(category: MoleculeCategory): void {

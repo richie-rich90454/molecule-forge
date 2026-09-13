@@ -30,16 +30,27 @@ impl EngineHandle {
         positions: &[f64],
         radii: &[f64],
         charges: &[f64],
+        donors: &[f64],
+        acceptors: &[f64],
         epsilon: f64,
         dielectric: f64,
         cutoff: f64,
+        hb_strength: f64,
+        hb_distance: f64,
         out_forces: &mut [f64],
     ) {
+        let count = radii
+            .len()
+            .min(charges.len())
+            .min(donors.len())
+            .min(acceptors.len())
+            .min(positions.len() / 3)
+            .min(out_forces.len() / 3);
         let calculators: Vec<Box<dyn ForceCalculator>> = vec![
             Box::new(LennardJonesCalculator::new(epsilon)),
             Box::new(CoulombCalculator::new(dielectric)),
         ];
-        let count = radii.len();
+        let hb = HydrogenBondCalculator::new(hb_strength, hb_distance);
         for v in out_forces.iter_mut() {
             *v = 0.0;
         }
@@ -61,6 +72,16 @@ impl EngineHandle {
                         charges[i],
                         charges[j],
                     );
+                }
+                total += hb.pair_magnitude(
+                    dist,
+                    donors[i] as u32 + donors[j] as u32,
+                    acceptors[i] as u32 + acceptors[j] as u32,
+                );
+                if total > 4000.0 {
+                    total = 4000.0;
+                } else if total < -4000.0 {
+                    total = -4000.0;
                 }
                 let scale = total / dist;
                 out_forces[i * 3] += dx * scale;

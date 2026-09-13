@@ -1,6 +1,6 @@
 # Physics layer
 
-All files live in `src/sim`. The engine knows molecules as rigid bodies, never as chemistry.
+All files live in `src/sim`. The physics engine knows molecules as rigid bodies, never as chemistry. The one chemistry-directed module in this folder, `SynthesisEngine`, is covered under [Reactions](/reactions); it reads the world but the forces here do not.
 
 ## Integration
 

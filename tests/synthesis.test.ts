@@ -212,6 +212,15 @@ describe("CompoundSynthesizer", () => {
         const salt = synthesizer.predict(pool({ Na: 1, Cl: 1 })).product as ISynthesisProduct;
         expect(salt.formula).toBe("NaCl");
         expect(salt.name).toBe("Sodium chloride");
+        expect(salt.record?.bonds.length).toBe(1);
+        expect(salt.record?.bonds[0].ionic).toBe(true);
+    });
+
+    it("marks only the inter-ion bonds of a polyatomic salt as ionic", () => {
+        const hydroxide = synthesizer.predict(pool({ Na: 1, O: 1, H: 1 }))
+            .product as ISynthesisProduct;
+        expect(hydroxide.record?.bonds.some((bond) => bond.ionic === true)).toBe(true);
+        expect(hydroxide.record?.bonds.some((bond) => bond.ionic !== true)).toBe(true);
     });
 
     it("reuses cached records for the same compound", () => {

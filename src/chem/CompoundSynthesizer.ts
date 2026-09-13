@@ -86,7 +86,6 @@ const COVALENT_CATALOG: ReadonlyMap<string, string> = new Map([
     ["O,O,S", "sulfur-dioxide"],
     ["N,O,O", "nitrogen-dioxide"],
     ["H,H,S", "hydrogen-sulfide"],
-    ["H,H,O,O", "hydrogen-peroxide"],
 ]);
 
 const COVALENT_SYNTH: ReadonlyMap<string, ICovalentSynth> = new Map([
@@ -120,9 +119,6 @@ function matchMultiplier(
     entry: ReadonlyMap<string, number>,
     reactive: ReadonlyMap<string, number>,
 ): number | null {
-    if (entry.size !== reactive.size) {
-        return null;
-    }
     let multiplier = -1;
     for (const [symbol, need] of entry) {
         const available = reactive.get(symbol);
@@ -137,6 +133,15 @@ function matchMultiplier(
         }
     }
     return multiplier;
+}
+
+interface ICovalentCandidate {
+    readonly catalogId: string | null;
+    readonly synth: ICovalentSynth | null;
+    readonly formula: string;
+    readonly needs: Map<string, number>;
+    readonly units: number;
+    readonly stability: number;
 }
 
 interface IIonicCandidate {
@@ -510,19 +515,50 @@ export class CompoundSynthesizer {
         if (reactive.size === 0) {
             return null;
         }
+        const exact = CompoundSynthesizer.bestCovalent(reactive, false);
+        if (exact !== null) {
+            return this.toCovalentProduct(exact);
+        }
+        const partial = CompoundSynthesizer.bestCovalent(reactive, true);
+        return partial === null ? null : this.toCovalentProduct(partial);
+    }
+
+    private static bestCovalent(
+        reactive: ReadonlyMap<string, number>,
+        partial: boolean,
+    ): ICovalentCandidate | null {
+        let best: ICovalentCandidate | null = null;
         for (const [key, catalogId] of COVALENT_CATALOG) {
-            const candidate = CompoundSynthesizer.covalentCandidate(catalogId, null, key, reactive);
-            if (candidate !== null) {
-                return this.toCovalentProduct(candidate);
+            const candidate = CompoundSynthesizer.covalentCandidate(
+                catalogId,
+                null,
+                key,
+                reactive,
+                partial,
+            );
+            if (
+                candidate !== null &&
+                (best === null || CompoundSynthesizer.compareCovalent(candidate, best) < 0)
+            ) {
+                best = candidate;
             }
         }
         for (const [key, synth] of COVALENT_SYNTH) {
-            const candidate = CompoundSynthesizer.covalentCandidate(null, synth, key, reactive);
-            if (candidate !== null) {
-                return this.toCovalentProduct(candidate);
+            const candidate = CompoundSynthesizer.covalentCandidate(
+                null,
+                synth,
+                key,
+                reactive,
+                partial,
+            );
+            if (
+                candidate !== null &&
+                (best === null || CompoundSynthesizer.compareCovalent(candidate, best) < 0)
+            ) {
+                best = candidate;
             }
         }
-        return null;
+        return best;
     }
 
     private static covalentCandidate(
@@ -530,34 +566,60 @@ export class CompoundSynthesizer {
         synth: ICovalentSynth | null,
         key: string,
         reactive: ReadonlyMap<string, number>,
-    ): {
-        catalogId: string | null;
-        synth: ICovalentSynth | null;
-        formula: string;
-        needs: Map<string, number>;
-        units: number;
-    } | null {
+        partial: boolean,
+    ): ICovalentCandidate | null {
         const needs = keyCounts(key);
-        const units = matchMultiplier(needs, reactive);
-        if (units === null) {
+        if (needs.size !== reactive.size) {
             return null;
         }
+        const exact = matchMultiplier(needs, reactive);
+        if (exact === null && !partial) {
+            return null;
+        }
+        let units: number;
+        if (exact !== null) {
+            units = exact;
+        } else {
+            units = CompoundSynthesizer.floorUnits(needs, reactive);
+            if (units < 1) {
+                return null;
+            }
+        }
+        const stability =
+            catalogId !== null
+                ? Thermochemistry.moleculeEnthalpy(catalogId)
+                : CompoundSynthesizer.specEnthalpy(synth as ICovalentSynth);
         return {
             catalogId,
             synth,
             formula: synth !== null ? synth.formula : key,
             needs,
             units,
+            /* v8 ignore next -- defensive: every catalog and synth compound has a tabulated enthalpy */
+            stability: stability ?? Number.POSITIVE_INFINITY,
         };
     }
 
-    private toCovalentProduct(candidate: {
-        catalogId: string | null;
-        synth: ICovalentSynth | null;
-        formula: string;
-        needs: Map<string, number>;
-        units: number;
-    }): ISynthesisProduct {
+    private static floorUnits(
+        needs: ReadonlyMap<string, number>,
+        reactive: ReadonlyMap<string, number>,
+    ): number {
+        let units = Infinity;
+        for (const [symbol, need] of needs) {
+            const available = reactive.get(symbol);
+            if (available === undefined) {
+                return 0;
+            }
+            units = Math.min(units, Math.floor(available / need));
+        }
+        return units;
+    }
+
+    private static compareCovalent(a: ICovalentCandidate, b: ICovalentCandidate): number {
+        return a.stability - b.stability;
+    }
+
+    private toCovalentProduct(candidate: ICovalentCandidate): ISynthesisProduct {
         if (candidate.catalogId !== null) {
             const deltaHf = Thermochemistry.moleculeEnthalpy(candidate.catalogId);
             return {

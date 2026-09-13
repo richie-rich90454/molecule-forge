@@ -8,6 +8,8 @@ import type { IReactionSink } from "./ReactionEngine";
 
 const ATOM_PREFIX = "el-";
 const FLASH = "#ace1af";
+const CELL_OFFSET = 1024;
+const CELL_SPAN = 2048;
 
 function isElementalSource(record: IMoleculeRecord): boolean {
     const atoms = record.atoms;
@@ -27,6 +29,12 @@ export class SynthesisEngine {
     private readonly registry: IMoleculeRegistry;
     private readonly synthesizer: CompoundSynthesizer;
     private readonly cell: number;
+    private readonly sources: MoleculeInstance[];
+    private readonly buckets: Map<number, MoleculeInstance[]>;
+    private readonly bucketKeys: number[];
+    private readonly visited: Set<number>;
+    private readonly cluster: MoleculeInstance[];
+    private readonly queue: MoleculeInstance[];
     private lastHint: string | null;
 
     public constructor(
@@ -37,46 +45,80 @@ export class SynthesisEngine {
         this.registry = registry;
         this.synthesizer = synthesizer;
         this.cell = radius;
+        this.sources = [];
+        this.buckets = new Map();
+        this.bucketKeys = [];
+        this.visited = new Set();
+        this.cluster = [];
+        this.queue = [];
         this.lastHint = null;
     }
 
+    private static cellIndexKey(cx: number, cy: number, cz: number): number {
+        return (
+            ((cx + CELL_OFFSET) * CELL_SPAN + (cy + CELL_OFFSET)) * CELL_SPAN + (cz + CELL_OFFSET)
+        );
+    }
+
+    private cellKey(x: number, y: number, z: number): number {
+        return SynthesisEngine.cellIndexKey(
+            Math.floor(x / this.cell),
+            Math.floor(y / this.cell),
+            Math.floor(z / this.cell),
+        );
+    }
+
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
-        const sources = world.getInstanceList().filter((inst) => isElementalSource(inst.record));
+        const sources = this.sources;
+        sources.length = 0;
+        for (const inst of world.getInstanceList()) {
+            if (isElementalSource(inst.record)) {
+                sources.push(inst);
+            }
+        }
         if (sources.length === 0) {
             return;
         }
-        const buckets = new Map<string, MoleculeInstance[]>();
-        for (const inst of sources) {
-            const key =
-                Math.floor(inst.px / this.cell) +
-                "," +
-                Math.floor(inst.py / this.cell) +
-                "," +
-                Math.floor(inst.pz / this.cell);
-            const list = buckets.get(key);
-            if (list === undefined) {
-                buckets.set(key, [inst]);
-            } else {
-                list.push(inst);
-            }
+        for (const key of this.bucketKeys) {
+            (this.buckets.get(key) as MoleculeInstance[]).length = 0;
         }
-        const visited = new Set<number>();
+        this.bucketKeys.length = 0;
+        for (const inst of sources) {
+            const key = this.cellKey(inst.px, inst.py, inst.pz);
+            let list = this.buckets.get(key);
+            if (list === undefined) {
+                list = [];
+                this.buckets.set(key, list);
+            }
+            list.push(inst);
+            this.bucketKeys.push(key);
+        }
+        const visited = this.visited;
+        visited.clear();
         for (const anchor of sources) {
             if (visited.has(anchor.id)) {
                 continue;
             }
             visited.add(anchor.id);
-            const cluster: MoleculeInstance[] = [anchor];
-            const queue: MoleculeInstance[] = [anchor];
-            while (queue.length > 0) {
-                const current = queue.shift() as MoleculeInstance;
+            const cluster = this.cluster;
+            cluster.length = 0;
+            cluster.push(anchor);
+            const queue = this.queue;
+            queue.length = 0;
+            queue.push(anchor);
+            let head = 0;
+            while (head < queue.length) {
+                const current = queue[head];
+                head++;
                 const cx = Math.floor(current.px / this.cell);
                 const cy = Math.floor(current.py / this.cell);
                 const cz = Math.floor(current.pz / this.cell);
                 for (let dx = -1; dx <= 1; dx++) {
                     for (let dy = -1; dy <= 1; dy++) {
                         for (let dz = -1; dz <= 1; dz++) {
-                            const list = buckets.get(cx + dx + "," + (cy + dy) + "," + (cz + dz));
+                            const list = this.buckets.get(
+                                SynthesisEngine.cellIndexKey(cx + dx, cy + dy, cz + dz),
+                            );
                             if (list === undefined) {
                                 continue;
                             }

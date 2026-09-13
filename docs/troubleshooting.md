@@ -20,6 +20,14 @@ Detonation needs something burnable: explosive-tagged molecules for shockwaves, 
 
 Spark arms ignition and adds 150 K. Far below 700 K with no fuel nearby, there is nothing to catch. Heat first or spawn fuel plus oxygen, then spark.
 
+## Atoms sit next to each other and never react
+
+Synthesis is stoichiometric, not magnetic. Place enough of each element within a few angstroms. A single cerium atom needs three bromine atoms before CeBr3 can form, and the log says so: "Cerium(III) bromide needs 1 Ce and 3 Br per unit." Two bromine atoms alone make Br2 instead. Noble gases are inert by design. Once the ratio is right, the compound forms within a few simulation ticks; raise the temperature or the Speed slider to hurry it along. Charges and the reaction log make it easy to confirm a compound formed.
+
+## A synthesized compound cannot be restored from a snapshot
+
+Runtime compounds exist only in the session; snapshots store molecule ids and counts, and the catalogue does not contain generated compounds. A restored elemental scene re-forms its compounds from the same seed. Catalogue molecules always restore exactly.
+
 ## Sound stays silent
 
 Sound ships off. Flip the Sound toggle, then trigger any action. Browsers require a user gesture before audio starts, so the first click resumes the context.

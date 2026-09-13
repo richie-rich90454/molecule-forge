@@ -12,6 +12,8 @@ Five engines run in the fixed-step loop, all publishing the same event type so t
 
 `ReactionEngine` scans its rules at 20 Hz: it picks an anchor molecule matching the first reactant, gathers the remaining partners within 7 angstroms, checks temperature, pH, spark, and catalyst conditions, then rolls an Arrhenius probability `min(0.5, exp(-Ea / RT) * boost * 8)` against the seeded RNG. On success it removes reactants, spawns products at the centroid, and publishes a visual plus a log line. Every reactant and product id must exist in the catalogue.
 
+Candidate lookup does not scan the chamber. `World` keeps a per-molecule-id and per-category index alongside its live-instance list, so a reactant search costs the number of matches regardless of how many molecules are present, and the synthesis clustering walks the same list with an index cursor instead of shifting its queue.
+
 ### Combustion
 
 | Rule               | Reaction                                         | Needs |

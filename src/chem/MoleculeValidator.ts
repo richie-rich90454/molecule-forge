@@ -58,6 +58,9 @@ export class MoleculeValidator {
     private checkValences(record: IMoleculeRecord, errors: string[]): void {
         const sums = new Array<number>(record.atoms.length).fill(0);
         for (const bond of record.bonds) {
+            if (bond.a < 0 || bond.b < 0 || bond.a >= sums.length || bond.b >= sums.length) {
+                continue;
+            }
             const w = bond.order === 2 ? 2 : bond.order === 3 ? 3 : 1;
             sums[bond.a] += w;
             sums[bond.b] += w;
@@ -98,6 +101,9 @@ export class MoleculeValidator {
         for (const bond of record.bonds) {
             const a = record.atoms[bond.a];
             const b = record.atoms[bond.b];
+            if (a === undefined || b === undefined) {
+                continue;
+            }
             const dx = a.x - b.x;
             const dy = a.y - b.y;
             const dz = a.z - b.z;

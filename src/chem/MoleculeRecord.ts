@@ -35,6 +35,7 @@ export interface IBondSpec {
     readonly order: BondOrder;
     readonly aromatic: boolean;
     readonly stereo: string | null;
+    readonly ionic?: boolean;
 }
 
 export interface IMoleculeProperties {
@@ -82,6 +83,7 @@ export interface ICompactMoleculeSpec {
     readonly bonds: ReadonlyArray<CompactBond>;
     readonly charges: ReadonlyArray<readonly [number, number]>;
     readonly explicitH: ReadonlyArray<readonly [number, number]>;
+    readonly ionicBonds?: ReadonlyArray<readonly [number, number]>;
 }
 
 export interface IMoleculeRegistry {

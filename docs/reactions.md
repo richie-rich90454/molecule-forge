@@ -61,20 +61,24 @@ Prediction order is ionic first, then a covalent catalogue molecule, then a diat
 
 Examples:
 
-| Input atoms  | Product                    | Notes                          |
-| ------------ | -------------------------- | ------------------------------ |
-| 1 Ce + 3 Br  | CeBr3, cerium(III) bromide | charge-balanced 1:3            |
-| 1 Ce + 4 Br  | CeBr4, cerium(IV) bromide  | cation charge chosen to fit    |
-| 2 Fe + 3 O   | Fe2O3, iron(III) oxide     | multi-cation formula           |
-| 1 Fe + 2 Br  | FeBr2, iron(II) bromide    | lower charge fits              |
-| 1 Ca + 3 Cl  | CaCl2 + 1 free Cl          | surplus returned as an atom    |
-| 1 Al + 2 Cl2 | AlCl3 + 1 free Cl          | diatomic overshoot returned    |
-| 2 H + 1 O    | water                      | covalent catalogue molecule    |
-| 1 H + 1 F    | HF, hydrogen fluoride      | generated covalent record      |
-| 2 O          | O2                         | diatomic recombination         |
-| 1 Ce + 2 Br  | hint only                  | "needs 1 Ce and 3 Br per unit" |
+| Input atoms  | Product                    | Notes                             |
+| ------------ | -------------------------- | --------------------------------- |
+| 1 Ce + 3 Br  | CeBr3, cerium(III) bromide | charge-balanced 1:3               |
+| 1 Ce + 4 Br  | CeBr4, cerium(IV) bromide  | cation charge chosen to fit       |
+| 2 Fe + 3 O   | Fe2O3, iron(III) oxide     | multi-cation formula              |
+| 1 Fe + 2 Br  | FeBr2, iron(II) bromide    | lower charge fits                 |
+| 1 Ca + 3 Cl  | CaCl2 + 1 free Cl          | surplus returned as an atom       |
+| 1 Al + 2 Cl2 | AlCl3 + 1 free Cl          | diatomic overshoot returned       |
+| 2 H + 1 O    | water                      | covalent catalogue molecule       |
+| 4 H + 2 O    | 2 H2O                      | stoichiometry scaled to the atoms |
+| 1 C + 4 H    | CH4, methane               | covalent catalogue molecule       |
+| 1 H + 1 F    | HF, hydrogen fluoride      | generated covalent record         |
+| 1 Xe + 4 F   | XeF4, xenon tetrafluoride  | noble gas fluoride                |
+| 2 H + 2 F    | 2 HF                       | diatomic reagents combine         |
+| 2 O          | O2                         | diatomic recombination            |
+| 1 Ce + 2 Br  | hint only                  | "needs 1 Ce and 3 Br per unit"    |
 
-The synthesizer is a valence and electronegativity model, not a full quantum solver: it does not model redox potentials, polyatomic ions, solvent effects, or reaction barriers for the ionic step, and it approximates ionic lattices as discrete bonded clusters.
+The synthesizer is a valence and electronegativity model, not a full quantum solver: it does not model redox potentials, polyatomic ions, solvent effects, or reaction barriers for the ionic step, and it approximates ionic lattices as discrete bonded clusters. Elemental allotropes other than the halogens, nitrogen, oxygen, and hydrogen diatomics (for example S8 and P4) are not formed.
 
 ## Adding a rule
 

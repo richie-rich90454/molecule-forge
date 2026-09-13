@@ -2,6 +2,7 @@ import type { ICompactMoleculeSpec, IMoleculeRecord } from "./MoleculeRecord";
 import { ElementChemistry } from "./ElementChemistry";
 import { MoleculeFactory } from "./MoleculeFactory";
 import { PolyatomicIons, type IIonSpec } from "./PolyatomicIons";
+import { Thermochemistry } from "./Thermochemistry";
 
 export type SynthesisKind = "ionic" | "covalent" | "elemental";
 
@@ -18,6 +19,7 @@ export interface ISynthesisProduct {
     readonly formula: string;
     readonly needs: ReadonlyMap<string, number>;
     readonly units: number;
+    readonly enthalpy: number | null;
 }
 
 export interface ISynthesisPrediction {
@@ -214,7 +216,30 @@ export class CompoundSynthesizer {
             formula: best.formula,
             needs: best.needs,
             units: best.units,
+            enthalpy: CompoundSynthesizer.ionicEnthalpy(best),
         };
+    }
+
+    private static ionicEnthalpy(candidate: IIonicCandidate): number | null {
+        if (
+            candidate.cationCount !== 1 ||
+            candidate.anionCount !== 1 ||
+            !CompoundSynthesizer.isMonatomicIon(candidate.cation) ||
+            !CompoundSynthesizer.isMonatomicIon(candidate.anion)
+        ) {
+            return null;
+        }
+        const deltaHf = Thermochemistry.ionicFormationEnthalpy(
+            candidate.cation.id,
+            Math.abs(candidate.cation.charge),
+            candidate.anion.id,
+            Math.abs(candidate.anion.charge),
+        );
+        return Thermochemistry.reactionEnthalpy(candidate.perUnit, deltaHf, 1);
+    }
+
+    private static isMonatomicIon(ion: IIonSpec): boolean {
+        return ion.heavy.length === 1 && ion.explicitH.length === 0;
     }
 
     private ionicCandidates(totals: ReadonlyMap<string, number>): IIonicCandidate[] {
@@ -534,6 +559,7 @@ export class CompoundSynthesizer {
         units: number;
     }): ISynthesisProduct {
         if (candidate.catalogId !== null) {
+            const deltaHf = Thermochemistry.moleculeEnthalpy(candidate.catalogId);
             return {
                 kind: "covalent",
                 catalogId: candidate.catalogId,
@@ -542,6 +568,11 @@ export class CompoundSynthesizer {
                 formula: candidate.formula,
                 needs: candidate.needs,
                 units: candidate.units,
+                enthalpy: Thermochemistry.reactionEnthalpy(
+                    CompoundSynthesizer.totalConsumed(candidate.needs, candidate.units),
+                    deltaHf,
+                    candidate.units,
+                ),
             };
         }
         const synth = candidate.synth as ICovalentSynth;
@@ -554,6 +585,9 @@ export class CompoundSynthesizer {
             [],
             [],
         );
+        const deltaHf =
+            Thermochemistry.moleculeEnthalpy(synth.formula) ??
+            CompoundSynthesizer.specEnthalpy(synth);
         return {
             kind: "covalent",
             catalogId: null,
@@ -562,7 +596,34 @@ export class CompoundSynthesizer {
             formula: synth.formula,
             needs: candidate.needs,
             units: candidate.units,
+            enthalpy: Thermochemistry.reactionEnthalpy(
+                CompoundSynthesizer.totalConsumed(candidate.needs, candidate.units),
+                deltaHf,
+                candidate.units,
+            ),
         };
+    }
+
+    private static totalConsumed(
+        needs: ReadonlyMap<string, number>,
+        units: number,
+    ): Map<string, number> {
+        const total = new Map<string, number>();
+        for (const [symbol, need] of needs) {
+            total.set(symbol, need * units);
+        }
+        return total;
+    }
+
+    private static specEnthalpy(synth: ICovalentSynth): number | null {
+        const bonds = CompoundSynthesizer.linearBonds(synth.heavy.length, synth.bonds);
+        return Thermochemistry.covalentEnthalpy(
+            bonds.map((bond) => ({
+                a: synth.heavy[bond[0]],
+                b: synth.heavy[bond[1]],
+                order: bond[2],
+            })),
+        );
     }
 
     private static linearBonds(
@@ -583,6 +644,7 @@ export class CompoundSynthesizer {
         for (const [symbol, count] of monatomic) {
             const diatomic = DIATOMIC_CATALOG.get(symbol);
             if (diatomic !== undefined && count >= 2) {
+                const units = Math.floor(count / 2);
                 return {
                     kind: "elemental",
                     catalogId: diatomic,
@@ -590,7 +652,8 @@ export class CompoundSynthesizer {
                     name: ElementChemistry.get(symbol).name,
                     formula: symbol + "2",
                     needs: new Map([[symbol, 2]]),
-                    units: Math.floor(count / 2),
+                    units,
+                    enthalpy: CompoundSynthesizer.elementalEnthalpy(diatomic, symbol, 2, units),
                 };
             }
             const allotrope = ALLOTROPES.get(symbol);
@@ -605,9 +668,16 @@ export class CompoundSynthesizer {
                         formula: symbol + allotrope.count,
                         needs: new Map([[symbol, allotrope.count]]),
                         units,
+                        enthalpy: CompoundSynthesizer.elementalEnthalpy(
+                            allotrope.catalogId,
+                            symbol,
+                            allotrope.count,
+                            units,
+                        ),
                     };
                 }
                 const synth = allotrope.synth as ICovalentSynth;
+                const deltaHf = Thermochemistry.moleculeEnthalpy(synth.formula);
                 return {
                     kind: "elemental",
                     catalogId: null,
@@ -624,10 +694,29 @@ export class CompoundSynthesizer {
                     formula: synth.formula,
                     needs: new Map([[symbol, allotrope.count]]),
                     units,
+                    enthalpy: Thermochemistry.reactionEnthalpy(
+                        new Map([[symbol, allotrope.count * units]]),
+                        deltaHf,
+                        units,
+                    ),
                 };
             }
         }
         return null;
+    }
+
+    private static elementalEnthalpy(
+        catalogId: string,
+        symbol: string,
+        perUnit: number,
+        units: number,
+    ): number | null {
+        const deltaHf = Thermochemistry.moleculeEnthalpy(catalogId);
+        return Thermochemistry.reactionEnthalpy(
+            new Map([[symbol, perUnit * units]]),
+            deltaHf,
+            units,
+        );
     }
 
     private buildRecord(

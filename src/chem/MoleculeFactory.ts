@@ -158,6 +158,24 @@ export class MoleculeFactory {
         return dirs;
     }
 
+    private static bipyramidalDirections(): number[][] {
+        const dirs = MoleculeFactory.trigonalDirections();
+        dirs.push([0, 0, 1]);
+        dirs.push([0, 0, -1]);
+        return dirs;
+    }
+
+    private static octahedralDirections(): number[][] {
+        return [
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+        ];
+    }
+
     private static rotate(dirs: number[][], rng: () => number): number[][] {
         const ax = rng() * Math.PI * 2;
         const ay = rng() * Math.PI * 2;
@@ -196,6 +214,12 @@ export class MoleculeFactory {
         }
         if (count === 3) {
             return MoleculeFactory.rotate(MoleculeFactory.trigonalDirections(), rng);
+        }
+        if (count === 5) {
+            return MoleculeFactory.rotate(MoleculeFactory.bipyramidalDirections(), rng);
+        }
+        if (count >= 6) {
+            return MoleculeFactory.rotate(MoleculeFactory.octahedralDirections(), rng);
         }
         return MoleculeFactory.rotate(MoleculeFactory.tetraDirections(), rng);
     }
@@ -265,6 +289,7 @@ export class MoleculeFactory {
                             best = s;
                         }
                     }
+                    /* v8 ignore next -- defensive: no molecule exceeds its coordination set, so a direction is always free */
                     if (best < 0) {
                         best = 0;
                     }

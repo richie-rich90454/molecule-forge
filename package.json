@@ -12,7 +12,9 @@
         "format:check": "oxfmt --check .",
         "test": "vitest run",
         "bake": "bun scripts/bake-molecules.ts",
-        "validate": "bun scripts/validate-molecules.ts"
+        "validate": "bun scripts/validate-molecules.ts",
+        "docs:dev": "vitepress dev docs",
+        "docs:build": "vitepress build docs"
     },
     "license": "MIT",
     "devDependencies": {

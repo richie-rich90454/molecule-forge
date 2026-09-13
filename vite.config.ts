@@ -14,8 +14,19 @@ export default defineConfig({
     test: {
         environment: "jsdom",
         globals: false,
-        setupFiles: ["node_modules/@testing-library/jest-dom/vitest"],
+        setupFiles: ["node_modules/@testing-library/jest-dom/vitest", "tests/setup.ts"],
         isolate: false,
+        coverage: {
+            provider: "v8",
+            include: ["src/**/*.{ts,tsx}"],
+            exclude: ["src/index.tsx", "scripts/**", "src/wasm/**"],
+            thresholds: {
+                statements: 100,
+                branches: 100,
+                functions: 100,
+                lines: 100,
+            },
+        },
     },
     build: {
         target: "esnext",

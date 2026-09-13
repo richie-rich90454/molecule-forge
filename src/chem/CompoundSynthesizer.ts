@@ -460,13 +460,13 @@ export class CompoundSynthesizer {
             anionStarts.push(heavy.length);
             CompoundSynthesizer.appendIon(candidate.anion, heavy, bonds, charges, explicitH);
         }
+        const ionic: Array<readonly [number, number]> = [];
         for (const cationStart of cationStarts) {
             for (const anionStart of anionStarts) {
-                bonds.push([
-                    cationStart + candidate.cation.bindingAtom,
-                    anionStart + candidate.anion.bindingAtom,
-                    1,
-                ]);
+                const cation = cationStart + candidate.cation.bindingAtom;
+                const anion = anionStart + candidate.anion.bindingAtom;
+                bonds.push([cation, anion, 1]);
+                ionic.push([cation, anion]);
             }
         }
         return this.buildRecord(
@@ -477,6 +477,7 @@ export class CompoundSynthesizer {
             bonds,
             charges,
             explicitH,
+            ionic,
         );
     }
 
@@ -789,6 +790,7 @@ export class CompoundSynthesizer {
         bonds: ReadonlyArray<readonly [number, number, number]>,
         charges: ReadonlyArray<readonly [number, number]>,
         explicitH: ReadonlyArray<readonly [number, number]>,
+        ionicBonds: ReadonlyArray<readonly [number, number]> = [],
     ): IMoleculeRecord {
         const cached = this.cache.get(id);
         if (cached !== undefined) {
@@ -807,6 +809,7 @@ export class CompoundSynthesizer {
             bonds,
             charges,
             explicitH,
+            ionicBonds,
         };
         const record = this.factory.build(spec);
         this.cache.set(id, record);

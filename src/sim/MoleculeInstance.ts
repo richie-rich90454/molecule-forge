@@ -8,6 +8,8 @@ export class MoleculeInstance {
     public readonly radius: number;
     public readonly mass: number;
     public readonly charge: number;
+    public readonly donors: number;
+    public readonly acceptors: number;
     public readonly jitterSeed: number;
     public px: number;
     public py: number;
@@ -87,6 +89,8 @@ export class MoleculeInstance {
         }
         this.radius = maxD;
         this.mass = record.mass;
+        this.donors = record.properties.hBondDonors;
+        this.acceptors = record.properties.hBondAcceptors;
         let charge = 0;
         for (const atom of record.atoms) {
             charge += atom.charge;
@@ -95,11 +99,11 @@ export class MoleculeInstance {
     }
 
     public getDonors(): number {
-        return this.record.properties.hBondDonors;
+        return this.donors;
     }
 
     public getAcceptors(): number {
-        return this.record.properties.hBondAcceptors;
+        return this.acceptors;
     }
 
     public snapshotPrevious(): void {

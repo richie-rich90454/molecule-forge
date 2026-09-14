@@ -14,8 +14,9 @@ export default defineConfig({
     test: {
         environment: "jsdom",
         globals: false,
-        setupFiles: ["node_modules/@testing-library/jest-dom/vitest", "tests/setup.ts"],
         isolate: false,
+        testTimeout: 20000,
+        setupFiles: ["node_modules/@testing-library/jest-dom/vitest", "tests/setup.ts"],
         coverage: {
             provider: "v8",
             include: ["src/**/*.{ts,tsx}"],

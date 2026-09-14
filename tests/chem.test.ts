@@ -361,4 +361,22 @@ describe("MoleculeValidatorCases", () => {
         expect(MoleculeValidator.parseFormula("C6H12O6").get("H")).toBe(12);
         expect(MoleculeValidator.parseFormula("He").get("He")).toBe(1);
     });
+
+    it("parses parentheses, hydrates, and stray characters", () => {
+        const hydroxide = MoleculeValidator.parseFormula("Ca(OH)2");
+        expect(hydroxide.get("O")).toBe(2);
+        expect(hydroxide.get("H")).toBe(2);
+        const nitrate = MoleculeValidator.parseFormula("Cu(NO3)2");
+        expect(nitrate.get("N")).toBe(2);
+        expect(nitrate.get("O")).toBe(6);
+        const hydrate = MoleculeValidator.parseFormula("CuSO4\u00b75H2O");
+        expect(hydrate.get("O")).toBe(9);
+        expect(hydrate.get("H")).toBe(10);
+        const strayClose = MoleculeValidator.parseFormula("H2O)");
+        expect(strayClose.get("H")).toBe(2);
+        expect(strayClose.get("O")).toBe(1);
+        const strayChars = MoleculeValidator.parseFormula("SO4--");
+        expect(strayChars.get("S")).toBe(1);
+        expect(strayChars.get("O")).toBe(4);
+    });
 });

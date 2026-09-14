@@ -7,6 +7,21 @@ export interface IValidationResult {
 }
 
 export class MoleculeValidator {
+    private static readonly HYPERVALENT: ReadonlyMap<string, number> = new Map([
+        ["Cl", 7],
+        ["Br", 7],
+        ["I", 7],
+        ["S", 6],
+        ["Se", 6],
+        ["Te", 6],
+        ["P", 5],
+        ["N", 5],
+        ["As", 5],
+        ["Si", 6],
+        ["B", 4],
+        ["Xe", 6],
+    ]);
+
     private readonly minAtomDistance: number;
     private readonly maxBondLength: number;
     private readonly maxMetalBondLength: number;
@@ -129,7 +144,11 @@ export class MoleculeValidator {
                 continue;
             }
             const base = ElementRegistry.get(atom.el).maxValence;
-            const max = base + (atom.charge !== 0 ? 1 : 0) + (base > 4 ? 2 : 0);
+            const hypervalent = MoleculeValidator.HYPERVALENT.get(atom.el) ?? 0;
+            const max = Math.max(
+                base + (atom.charge !== 0 ? 1 : 0) + (base > 4 ? 2 : 0),
+                hypervalent,
+            );
             if (sums[i] > max + 1e-9) {
                 errors.push("valence exceeded on " + atom.el + i + ": " + sums[i] + " > " + max);
             }
@@ -214,15 +233,79 @@ export class MoleculeValidator {
     }
 
     public static parseFormula(formula: string): Map<string, number> {
-        const counts = new Map<string, number>();
-        const pattern = /([A-Z][a-z]?)(\d*)/g;
-        let match = pattern.exec(formula);
-        while (match !== null) {
-            const el = match[1];
-            const n = match[2] === "" ? 1 : parseInt(match[2], 10);
-            counts.set(el, (counts.get(el) ?? 0) + n);
-            match = pattern.exec(formula);
+        let index = 0;
+        const isSeparator = (ch: string): boolean =>
+            ch === "\u00b7" || ch === "\u2022" || ch === "\u22c5" || ch === "*";
+        const add = (
+            target: Map<string, number>,
+            source: Map<string, number>,
+            scale: number,
+        ): void => {
+            for (const [element, count] of source) {
+                target.set(element, (target.get(element) ?? 0) + count * scale);
+            }
+        };
+        const readNumber = (): number => {
+            let digits = "";
+            while (index < formula.length && formula[index] >= "0" && formula[index] <= "9") {
+                digits += formula[index];
+                index++;
+            }
+            return digits === "" ? 1 : parseInt(digits, 10);
+        };
+        const readElement = (): string | null => {
+            const ch = formula[index];
+            if (ch < "A" || ch > "Z") {
+                return null;
+            }
+            let element = ch;
+            index++;
+            if (index < formula.length && formula[index] >= "a" && formula[index] <= "z") {
+                element += formula[index];
+                index++;
+            }
+            return element;
+        };
+        const parseSequence = (stopAtClose: boolean): Map<string, number> => {
+            const local = new Map<string, number>();
+            while (index < formula.length) {
+                const ch = formula[index];
+                if (isSeparator(ch)) {
+                    return local;
+                }
+                if (ch === "(" || ch === "[") {
+                    index++;
+                    add(local, parseSequence(true), readNumber());
+                } else if (ch === ")" || ch === "]") {
+                    index++;
+                    if (stopAtClose) {
+                        return local;
+                    }
+                } else {
+                    const element = readElement();
+                    if (element === null) {
+                        index++;
+                    } else {
+                        local.set(element, (local.get(element) ?? 0) + readNumber());
+                    }
+                }
+            }
+            return local;
+        };
+        const result = new Map<string, number>();
+        while (index < formula.length) {
+            if (isSeparator(formula[index])) {
+                index++;
+                continue;
+            }
+            let digits = "";
+            while (index < formula.length && formula[index] >= "0" && formula[index] <= "9") {
+                digits += formula[index];
+                index++;
+            }
+            const scale = digits === "" ? 1 : parseInt(digits, 10);
+            add(result, parseSequence(false), scale);
         }
-        return counts;
+        return result;
     }
 }

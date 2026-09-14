@@ -59,6 +59,13 @@ describe("SmilesParser branch extras", () => {
         expect(new SmilesParser().parse("[Fe+0]").charges).toEqual([[0, 1]]);
         expect(new SmilesParser().parse("[Fe-0]").charges).toEqual([[0, -1]]);
     });
+
+    it("parses two-letter elements and unbracketed chalcogens", () => {
+        expect(new SmilesParser().parse("[Fe]").heavy).toEqual(["Fe"]);
+        expect(new SmilesParser().parse("c1ccse1").heavy).toContain("Se");
+        expect(new SmilesParser().parse("c1ccasc1").heavy).toContain("As");
+        expect(new SmilesParser().parse("c1cctec1").heavy).toContain("Te");
+    });
 });
 
 describe("MoleculeCatalog formula formatting", () => {

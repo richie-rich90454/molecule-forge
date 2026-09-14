@@ -6,7 +6,7 @@
 
 ## High DPI
 
-The canvas backing store is CSS size times `devicePixelRatio`, capped at 4.0, resized through `ResizeObserver` on the container rather than window events. Thumbnails render at up to 2x. Degradation steps drop the cap to 2.0, 1.5, 1.25, then 1.0 only when the frame budget demands it.
+The canvas backing store is CSS size times `devicePixelRatio`, capped at 4.0, resized through `ResizeObserver` on the container rather than window events. Thumbnails render at up to 2x on a 15 fps budget, and only visible cards redraw. Degradation steps drop the cap to 2.0, 1.5, 1.25, then 1.0 only when the frame budget demands it.
 
 ## Draw calls
 

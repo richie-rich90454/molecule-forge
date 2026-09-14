@@ -28,7 +28,65 @@ export class MoleculeValidator {
         this.checkBondLengths(record, errors);
         this.checkFormula(record, errors);
         this.checkMass(record, errors);
+        this.checkAromaticity(record, errors);
+        this.checkChargeConsistency(record, errors);
         return { valid: errors.length === 0, errors };
+    }
+
+    private checkAromaticity(record: IMoleculeRecord, errors: string[]): void {
+        const aromaticBondAtoms = new Set<number>();
+        for (const bond of record.bonds) {
+            if (bond.aromatic) {
+                aromaticBondAtoms.add(bond.a);
+                aromaticBondAtoms.add(bond.b);
+            }
+        }
+        for (let i = 0; i < record.atoms.length; i++) {
+            if (record.atoms[i].aromatic && !aromaticBondAtoms.has(i)) {
+                errors.push("aromatic atom " + i + " carries no aromatic bond");
+                return;
+            }
+        }
+        for (const bond of record.bonds) {
+            if (!bond.aromatic) {
+                continue;
+            }
+            const a = record.atoms[bond.a];
+            const b = record.atoms[bond.b];
+            if (a !== undefined && b !== undefined && (!a.aromatic || !b.aromatic)) {
+                errors.push(
+                    "aromatic bond " + bond.a + "-" + bond.b + " touches a non-aromatic atom",
+                );
+                return;
+            }
+        }
+    }
+
+    private checkChargeConsistency(record: IMoleculeRecord, errors: string[]): void {
+        for (const bond of record.bonds) {
+            if (bond.ionic !== true) {
+                continue;
+            }
+            const a = record.atoms[bond.a];
+            const b = record.atoms[bond.b];
+            if (a === undefined || b === undefined) {
+                continue;
+            }
+            if (a.charge === 0 || b.charge === 0 || a.charge > 0 === b.charge > 0) {
+                errors.push(
+                    "ionic bond " +
+                        bond.a +
+                        "-" +
+                        bond.b +
+                        " lacks opposite formal charges (" +
+                        a.charge +
+                        ", " +
+                        b.charge +
+                        ")",
+                );
+                return;
+            }
+        }
     }
 
     private checkElements(record: IMoleculeRecord, errors: string[]): void {

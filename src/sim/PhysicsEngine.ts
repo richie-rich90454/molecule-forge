@@ -6,6 +6,7 @@ import type {
     MutablePairInput,
 } from "./IForceCalculator";
 import type { MoleculeInstance } from "./MoleculeInstance";
+import type { IForceFieldBackend } from "./ForceField";
 import { SeededRandom } from "./SeededRandom";
 import { SpatialHashGrid } from "./SpatialHashGrid";
 import type { World } from "./World";
@@ -21,6 +22,14 @@ export class PhysicsEngine {
         donors: number;
         acceptors: number;
     };
+    private forceField: IForceFieldBackend | null;
+    private positions: Float64Array;
+    private radii: Float64Array;
+    private charges: Float64Array;
+    private donors: Float64Array;
+    private acceptors: Float64Array;
+    private masses: Float64Array;
+    private outForces: Float64Array;
 
     public constructor(calculators: ReadonlyArray<IForceCalculator>, params: ISimParams) {
         this.calculators = calculators;
@@ -45,6 +54,18 @@ export class PhysicsEngine {
         };
         this.scratch = [];
         this.maxPartner = { radius: 0, charge: 1, donors: 0, acceptors: 0 };
+        this.forceField = null;
+        this.positions = new Float64Array(0);
+        this.radii = new Float64Array(0);
+        this.charges = new Float64Array(0);
+        this.donors = new Float64Array(0);
+        this.acceptors = new Float64Array(0);
+        this.masses = new Float64Array(0);
+        this.outForces = new Float64Array(0);
+    }
+
+    public setForceField(backend: IForceFieldBackend | null): void {
+        this.forceField = backend;
     }
 
     public step(world: World, dt: number, rng: SeededRandom): void {
@@ -77,86 +98,90 @@ export class PhysicsEngine {
                 hasAcceptor = true;
             }
         }
-        this.grid.clear();
-        for (const inst of instances) {
-            if (inst.alive) {
-                this.grid.insert(inst);
+        if (this.forceField === null) {
+            this.grid.clear();
+            for (const inst of instances) {
+                if (inst.alive) {
+                    this.grid.insert(inst);
+                }
             }
-        }
-        const cutoff = 10;
-        const partner = this.maxPartner;
-        partner.radius = maxRadius;
-        partner.donors = hasDonor ? 1 : 0;
-        partner.acceptors = hasAcceptor ? 1 : 0;
-        for (const a of instances) {
-            if (!a.alive) {
-                continue;
-            }
-            this.grid.queryRadius(
-                a.px,
-                a.py,
-                a.pz,
-                this.queryRange(a, partner, cutoff),
-                this.scratch,
-            );
-            for (const b of this.scratch) {
-                if (b.id <= a.id || !b.alive) {
+            const cutoff = 10;
+            const partner = this.maxPartner;
+            partner.radius = maxRadius;
+            partner.donors = hasDonor ? 1 : 0;
+            partner.acceptors = hasAcceptor ? 1 : 0;
+            for (const a of instances) {
+                if (!a.alive) {
                     continue;
                 }
-                const dx = a.px - b.px;
-                const dy = a.py - b.py;
-                const dz = a.pz - b.pz;
-                const distSq = dx * dx + dy * dy + dz * dz;
-                if (distSq > cutoff * cutoff || distSq < 1e-12) {
-                    continue;
-                }
-                const dist = Math.sqrt(distSq);
-                const input = this.pairInput;
-                const mutable = input as { -readonly [K in keyof IPairInput]: IPairInput[K] };
-                mutable.ax = a.px;
-                mutable.ay = a.py;
-                mutable.az = a.pz;
-                mutable.bx = b.px;
-                mutable.by = b.py;
-                mutable.bz = b.pz;
-                mutable.dist = dist;
-                mutable.aRadius = a.radius;
-                mutable.bRadius = b.radius;
-                mutable.aCharge = a.charge;
-                mutable.bCharge = b.charge;
-                mutable.aDonors = a.donors;
-                mutable.aAcceptors = a.acceptors;
-                mutable.bDonors = b.donors;
-                mutable.bAcceptors = b.acceptors;
-                let total = 0;
-                for (const calc of this.calculators) {
-                    if (calc.getRange !== undefined) {
-                        const limit = calc.getRange(a, b);
-                        if (limit <= 0 || dist > limit) {
-                            continue;
-                        }
+                this.grid.queryRadius(
+                    a.px,
+                    a.py,
+                    a.pz,
+                    this.queryRange(a, partner, cutoff),
+                    this.scratch,
+                );
+                for (const b of this.scratch) {
+                    if (b.id <= a.id || !b.alive) {
+                        continue;
                     }
-                    total += calc.computeMagnitude(input);
+                    const dx = a.px - b.px;
+                    const dy = a.py - b.py;
+                    const dz = a.pz - b.pz;
+                    const distSq = dx * dx + dy * dy + dz * dz;
+                    if (distSq > cutoff * cutoff || distSq < 1e-12) {
+                        continue;
+                    }
+                    const dist = Math.sqrt(distSq);
+                    const input = this.pairInput;
+                    const mutable = input as { -readonly [K in keyof IPairInput]: IPairInput[K] };
+                    mutable.ax = a.px;
+                    mutable.ay = a.py;
+                    mutable.az = a.pz;
+                    mutable.bx = b.px;
+                    mutable.by = b.py;
+                    mutable.bz = b.pz;
+                    mutable.dist = dist;
+                    mutable.aRadius = a.radius;
+                    mutable.bRadius = b.radius;
+                    mutable.aCharge = a.charge;
+                    mutable.bCharge = b.charge;
+                    mutable.aDonors = a.donors;
+                    mutable.aAcceptors = a.acceptors;
+                    mutable.bDonors = b.donors;
+                    mutable.bAcceptors = b.acceptors;
+                    let total = 0;
+                    for (const calc of this.calculators) {
+                        if (calc.getRange !== undefined) {
+                            const limit = calc.getRange(a, b);
+                            if (limit <= 0 || dist > limit) {
+                                continue;
+                            }
+                        }
+                        total += calc.computeMagnitude(input);
+                    }
+                    if (total === 0) {
+                        continue;
+                    }
+                    if (total > 4000) {
+                        total = 4000;
+                    } else if (total < -4000) {
+                        total = -4000;
+                    }
+                    const scale = total / dist;
+                    const fx = dx * scale;
+                    const fy = dy * scale;
+                    const fz = dz * scale;
+                    a.ax += fx / a.mass;
+                    a.ay += fy / a.mass;
+                    a.az += fz / a.mass;
+                    b.ax -= fx / b.mass;
+                    b.ay -= fy / b.mass;
+                    b.az -= fz / b.mass;
                 }
-                if (total === 0) {
-                    continue;
-                }
-                if (total > 4000) {
-                    total = 4000;
-                } else if (total < -4000) {
-                    total = -4000;
-                }
-                const scale = total / dist;
-                const fx = dx * scale;
-                const fy = dy * scale;
-                const fz = dz * scale;
-                a.ax += fx / a.mass;
-                a.ay += fy / a.mass;
-                a.az += fz / a.mass;
-                b.ax -= fx / b.mass;
-                b.ay -= fy / b.mass;
-                b.az -= fz / b.mass;
             }
+        } else {
+            this.computeWithBackend(instances, maxRadius, hasDonor, hasAcceptor, params);
         }
         const kT = params.temperature * 0.02 + params.radiation * 9;
         const gamma = 0.5 + params.viscosity * 6;
@@ -226,6 +251,77 @@ export class PhysicsEngine {
             inst.avy *= 1 - Math.min(0.9, dt * 2);
             inst.avz *= 1 - Math.min(0.9, dt * 2);
             PhysicsEngine.integrateQuaternion(inst, dt);
+        }
+    }
+
+    private computeWithBackend(
+        instances: ReadonlyArray<MoleculeInstance>,
+        maxRadius: number,
+        hasDonor: boolean,
+        hasAcceptor: boolean,
+        params: ISimParams,
+    ): void {
+        const backend = this.forceField as IForceFieldBackend;
+        let count = 0;
+        for (const inst of instances) {
+            if (inst.alive) {
+                count++;
+            }
+        }
+        if (count === 0) {
+            return;
+        }
+        if (this.positions.length < count * 3) {
+            this.positions = new Float64Array(count * 3);
+            this.outForces = new Float64Array(count * 3);
+        }
+        if (this.radii.length < count) {
+            this.radii = new Float64Array(count);
+            this.charges = new Float64Array(count);
+            this.donors = new Float64Array(count);
+            this.acceptors = new Float64Array(count);
+            this.masses = new Float64Array(count);
+        }
+        let index = 0;
+        for (const inst of instances) {
+            if (!inst.alive) {
+                continue;
+            }
+            this.positions[index * 3] = inst.px;
+            this.positions[index * 3 + 1] = inst.py;
+            this.positions[index * 3 + 2] = inst.pz;
+            this.radii[index] = inst.radius;
+            this.charges[index] = inst.charge;
+            this.donors[index] = inst.donors;
+            this.acceptors[index] = inst.acceptors;
+            this.masses[index] = inst.mass;
+            index++;
+        }
+        const positions = this.positions.subarray(0, count * 3);
+        const outForces = this.outForces.subarray(0, count * 3);
+        backend.compute({
+            positions,
+            radii: this.radii.subarray(0, count),
+            charges: this.charges.subarray(0, count),
+            donors: this.donors.subarray(0, count),
+            acceptors: this.acceptors.subarray(0, count),
+            masses: this.masses.subarray(0, count),
+            maxRadius,
+            hasDonor,
+            hasAcceptor,
+            bondStrength: params.bondStrength,
+            polarity: params.polarity,
+            outForces,
+        });
+        let apply = 0;
+        for (const inst of instances) {
+            if (!inst.alive) {
+                continue;
+            }
+            inst.ax += outForces[apply * 3];
+            inst.ay += outForces[apply * 3 + 1];
+            inst.az += outForces[apply * 3 + 2];
+            apply++;
         }
     }
 

@@ -340,77 +340,139 @@ export class MoleculeFactory {
             bondedPairs.add(b.a * n + b.b);
             bondedPairs.add(b.b * n + b.a);
         }
-        const OFF = 2048;
-        const SPAN = 4096;
-        const cellKey = (x: number, y: number, z: number): number =>
-            ((x + OFF) * SPAN + (y + OFF)) * SPAN + (z + OFF);
         const cell = 2.5;
-        const grid = new Map<number, number[]>();
-        const usedKeys: number[] = [];
-        const resolveOverlaps = (): boolean => {
-            for (const key of usedKeys) {
-                (grid.get(key) as number[]).length = 0;
-            }
-            usedKeys.length = 0;
-            for (let i = 0; i < n; i++) {
-                const a = atoms[i];
-                const key = cellKey(
-                    Math.floor(a.x / cell),
-                    Math.floor(a.y / cell),
-                    Math.floor(a.z / cell),
-                );
-                let list = grid.get(key);
-                if (list === undefined) {
-                    list = [];
-                    grid.set(key, list);
+        let capacity = 16;
+        while (capacity < n * 2) {
+            capacity *= 2;
+        }
+        const tableMask = capacity - 1;
+        const tableKey = new Uint8Array(capacity);
+        const tableX = new Int32Array(capacity);
+        const tableY = new Int32Array(capacity);
+        const tableZ = new Int32Array(capacity);
+        const tableCount = new Int32Array(capacity);
+        const tableStart = new Int32Array(capacity);
+        const cursor = new Int32Array(capacity);
+        const order = new Int32Array(n);
+        const cellX = new Int32Array(n);
+        const cellY = new Int32Array(n);
+        const cellZ = new Int32Array(n);
+        const intern = (x: number, y: number, z: number): number => {
+            let slot =
+                (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791)) &
+                tableMask;
+            while (tableKey[slot] === 1) {
+                if (tableX[slot] === x && tableY[slot] === y && tableZ[slot] === z) {
+                    return slot;
                 }
-                list.push(i);
-                usedKeys.push(key);
+                slot = (slot + 1) & tableMask;
             }
-            let found = false;
+            tableKey[slot] = 1;
+            tableX[slot] = x;
+            tableY[slot] = y;
+            tableZ[slot] = z;
+            return slot;
+        };
+        const lookup = (x: number, y: number, z: number): number => {
+            let slot =
+                (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791)) &
+                tableMask;
+            while (tableKey[slot] === 1) {
+                if (tableX[slot] === x && tableY[slot] === y && tableZ[slot] === z) {
+                    return slot;
+                }
+                slot = (slot + 1) & tableMask;
+            }
+            return -1;
+        };
+        const offsets: number[][] = [];
+        for (let ox = -1; ox <= 1; ox++) {
+            for (let oy = -1; oy <= 1; oy++) {
+                for (let oz = -1; oz <= 1; oz++) {
+                    if (ox > 0 || (ox === 0 && oy > 0) || (ox === 0 && oy === 0 && oz > 0)) {
+                        offsets.push([ox, oy, oz]);
+                    }
+                }
+            }
+        }
+        let pairFound = false;
+        const considerPair = (i: number, j: number): void => {
+            if (bondedPairs.has(i * n + j)) {
+                return;
+            }
+            const p = atoms[i];
+            const q = atoms[j];
+            const ddx = q.x - p.x;
+            const ddy = q.y - p.y;
+            const ddz = q.z - p.z;
+            const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+            if (d2 < 1.44 && d2 > 1e-12) {
+                pairFound = true;
+                const dist = Math.sqrt(d2);
+                const overlap = 1.2 - dist;
+                const push = (overlap / dist) * 0.3;
+                p.x -= ddx * push;
+                p.y -= ddy * push;
+                p.z -= ddz * push;
+                q.x += ddx * push;
+                q.y += ddy * push;
+                q.z += ddz * push;
+            }
+        };
+        const resolveOverlaps = (): boolean => {
+            tableKey.fill(0);
+            tableCount.fill(0);
             for (let i = 0; i < n; i++) {
                 const a = atoms[i];
                 const cx = Math.floor(a.x / cell);
                 const cy = Math.floor(a.y / cell);
                 const cz = Math.floor(a.z / cell);
-                for (let dx = -1; dx <= 1; dx++) {
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dz = -1; dz <= 1; dz++) {
-                            const list = grid.get(cellKey(cx + dx, cy + dy, cz + dz));
-                            if (list === undefined) {
-                                continue;
-                            }
-                            for (const j of list) {
-                                if (j <= i) {
-                                    continue;
-                                }
-                                if (bondedPairs.has(i * n + j)) {
-                                    continue;
-                                }
-                                const p = atoms[i];
-                                const q = atoms[j];
-                                const ddx = q.x - p.x;
-                                const ddy = q.y - p.y;
-                                const ddz = q.z - p.z;
-                                const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-                                if (d2 < 1.44 && d2 > 1e-12) {
-                                    found = true;
-                                    const dist = Math.sqrt(d2);
-                                    const overlap = 1.2 - dist;
-                                    const push = (overlap / dist) * 0.3;
-                                    p.x -= ddx * push;
-                                    p.y -= ddy * push;
-                                    p.z -= ddz * push;
-                                    q.x += ddx * push;
-                                    q.y += ddy * push;
-                                    q.z += ddz * push;
-                                }
-                            }
+                cellX[i] = cx;
+                cellY[i] = cy;
+                cellZ[i] = cz;
+                tableCount[intern(cx, cy, cz)]++;
+            }
+            let acc = 0;
+            for (let slot = 0; slot < capacity; slot++) {
+                tableStart[slot] = acc;
+                cursor[slot] = acc;
+                acc += tableCount[slot];
+            }
+            for (let i = 0; i < n; i++) {
+                const slot = lookup(cellX[i], cellY[i], cellZ[i]);
+                order[cursor[slot]++] = i;
+            }
+            pairFound = false;
+            for (let slot = 0; slot < capacity; slot++) {
+                const count = tableCount[slot];
+                if (count === 0) {
+                    continue;
+                }
+                const start = tableStart[slot];
+                const end = start + count;
+                for (let p = start; p < end; p++) {
+                    for (let q = p + 1; q < end; q++) {
+                        considerPair(order[p], order[q]);
+                    }
+                }
+                const sx = tableX[slot];
+                const sy = tableY[slot];
+                const sz = tableZ[slot];
+                for (const offset of offsets) {
+                    const neighbor = lookup(sx + offset[0], sy + offset[1], sz + offset[2]);
+                    if (neighbor < 0) {
+                        continue;
+                    }
+                    const nStart = tableStart[neighbor];
+                    const nEnd = nStart + tableCount[neighbor];
+                    for (let p = start; p < end; p++) {
+                        for (let q = nStart; q < nEnd; q++) {
+                            considerPair(order[p], order[q]);
                         }
                     }
                 }
             }
-            return found;
+            return pairFound;
         };
         const budget = 400;
         let overlapping = true;

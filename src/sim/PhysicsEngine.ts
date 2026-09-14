@@ -12,6 +12,8 @@ import { SpatialHashGrid } from "./SpatialHashGrid";
 import type { World } from "./World";
 
 export class PhysicsEngine {
+    private static readonly FORCE_FIELD_MIN_INSTANCES = 16;
+
     private readonly calculators: ReadonlyArray<IForceCalculator>;
     private readonly grid: SpatialHashGrid<MoleculeInstance>;
     private readonly pairInput: MutablePairInput;
@@ -98,7 +100,10 @@ export class PhysicsEngine {
                 hasAcceptor = true;
             }
         }
-        if (this.forceField === null) {
+        if (
+            this.forceField === null ||
+            instances.length < PhysicsEngine.FORCE_FIELD_MIN_INSTANCES
+        ) {
             this.grid.clear();
             for (const inst of instances) {
                 if (inst.alive) {

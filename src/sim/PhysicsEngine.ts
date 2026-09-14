@@ -111,21 +111,6 @@ export class PhysicsEngine {
                     continue;
                 }
                 const dist = Math.sqrt(distSq);
-                let range = 0;
-                let known = true;
-                for (const calc of this.calculators) {
-                    if (calc.getRange === undefined) {
-                        known = false;
-                        break;
-                    }
-                    const limit = calc.getRange(a, b);
-                    if (limit > range) {
-                        range = limit;
-                    }
-                }
-                if (known && dist > range) {
-                    continue;
-                }
                 const input = this.pairInput;
                 const mutable = input as { -readonly [K in keyof IPairInput]: IPairInput[K] };
                 mutable.ax = a.px;
@@ -145,7 +130,16 @@ export class PhysicsEngine {
                 mutable.bAcceptors = b.acceptors;
                 let total = 0;
                 for (const calc of this.calculators) {
+                    if (calc.getRange !== undefined) {
+                        const limit = calc.getRange(a, b);
+                        if (limit <= 0 || dist > limit) {
+                            continue;
+                        }
+                    }
                     total += calc.computeMagnitude(input);
+                }
+                if (total === 0) {
+                    continue;
                 }
                 if (total > 4000) {
                     total = 4000;

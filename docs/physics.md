@@ -33,4 +33,8 @@ The remaining cost is the O(n^2 / density) pairwise force integral itself; the c
 
 ## Determinism
 
-`SeededRandom` (mulberry32) feeds spawn jitter, thermal kicks, detonation scatter, and reaction rolls. Presets fix their seed, so identical clicks reproduce identical scenes. The Rust core in `src/wasm/engine` mirrors the integrators, forces, grid, and rate math, compiles warning-free, and passes twelve unit tests; the TypeScript engine above is the current runtime path.
+`SeededRandom` (mulberry32) feeds spawn jitter, thermal kicks, detonation scatter, and reaction rolls. Presets fix their seed, so identical clicks reproduce identical scenes.
+
+## Rust core (experimental)
+
+`src/wasm/engine` is a standalone Rust crate that mirrors the integrators, the three force calculators, the spatial hash, and the reaction-condition gate; its twelve unit tests pass with `bun run wasm:test` (`cargo test`). It is deliberately **not** wired into the app: the exported harness runs a simple all-pairs force pass with no spatial index or range culling, it carries no reaction engines, and the shipped artifact is a single offline HTML file. The TypeScript engine above is the runtime; the crate is a reference implementation and a starting point for a future optimized build.

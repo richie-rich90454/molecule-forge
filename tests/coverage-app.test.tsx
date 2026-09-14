@@ -698,6 +698,7 @@ describe("Application coverage", () => {
             internals.attachCanvas(canvas);
             vm.setPaused(false);
 
+            (app as unknown as { stepMsEstimate: number }).stepMsEstimate = 1000;
             vi.advanceTimersByTime(600);
             vm.clearWorld();
             vi.advanceTimersByTime(300);

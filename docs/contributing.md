@@ -7,7 +7,7 @@ Use `bun` for everything. Never `npm` or `npx`; use `bunx` for one-off tools.
 ```bash
 bun install
 bun run dev          # develop with hot reload
-bun run build        # produce dist/index.html
+bun run build        # produce the dist folder
 bun run test         # run the Vitest suite (274 tests, 100 percent coverage)
 bun run validate     # validate all 507 molecules
 bun run bake > docs/molecules.md  # regenerate the molecule listing

@@ -73,6 +73,29 @@ describe("RedoxEngine", () => {
         expect(tracker.events.length).toBe(0);
     });
 
+    it("skips salts whose metal has no tabulated couple", () => {
+        const registry = makeRegistry();
+        const synthesizer = new CompoundSynthesizer();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-zn"), 0, 0, 0, 0);
+        world.spawn(synthRecord(synthesizer, { Be: 1, Cl: 2 }), 1, 0, 0, 0);
+        const tracker = makeSink();
+        new RedoxEngine(registry, synthesizer).update(world, new SeededRandom(3), tracker.sink);
+        expect(tracker.events.length).toBe(0);
+    });
+
+    it("skips unfavorable salts before a displaceable one", () => {
+        const registry = makeRegistry();
+        const synthesizer = new CompoundSynthesizer();
+        const world = makeWorld();
+        world.spawn(record(registry, "el-zn"), 0, 0, 0, 0);
+        world.spawn(synthRecord(synthesizer, { Mg: 1, Cl: 2 }), 0.5, 0, 0, 0);
+        world.spawn(synthRecord(synthesizer, { Cu: 1, Cl: 2 }), 1, 0, 0, 0);
+        const tracker = makeSink();
+        new RedoxEngine(registry, synthesizer).update(world, new SeededRandom(4), tracker.sink);
+        expect(tracker.events.some((event) => event.ruleId === "redox-Zn-Cu")).toBe(true);
+    });
+
     it("ignores distant pairs and missing partners", () => {
         const registry = makeRegistry();
         const synthesizer = new CompoundSynthesizer();

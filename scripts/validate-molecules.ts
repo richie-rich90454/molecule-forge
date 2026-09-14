@@ -1,4 +1,5 @@
 import { MoleculeFactory } from "../src/chem/MoleculeFactory";
+import { MoleculeCatalog } from "../src/chem/MoleculeCatalog";
 import { MoleculeRegistry } from "../src/chem/MoleculeRegistry";
 import { MoleculeValidator } from "../src/chem/MoleculeValidator";
 
@@ -10,6 +11,14 @@ export class MoleculeValidationRunner {
         let failures = 0;
         const records = registry.getAllRecords();
         console.log("validating " + records.length + " molecules");
+        const seen = new Set<string>();
+        for (const spec of MoleculeCatalog.buildCompactSpecs()) {
+            if (seen.has(spec.id)) {
+                failures++;
+                console.log("FAIL duplicate id " + spec.id);
+            }
+            seen.add(spec.id);
+        }
         for (const record of records) {
             const result = validator.validate(record);
             if (!result.valid) {

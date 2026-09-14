@@ -51,6 +51,14 @@ export function AppShell(properties: {
                     >
                         View
                     </button>
+                    <button
+                        class="mf-btn"
+                        onClick={() => vm.togglePhysics()}
+                        disabled={!vm.getWasmAvailable()}
+                        title="Switch the force engine between WebAssembly and JavaScript"
+                    >
+                        Physics {vm.getPhysicsBackend() === "wasm" ? "WASM" : "JS"}
+                    </button>
                 </div>
             </header>
             <div class="mf-main">

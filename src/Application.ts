@@ -8,6 +8,11 @@ import { FramePacer } from "./render/FramePacer";
 import { Renderer } from "./render/Renderer";
 import { CoulombCalculator } from "./sim/CoulombCalculator";
 import { DecompositionEngine } from "./sim/DecompositionEngine";
+import {
+    DEFAULT_FORCE_FIELD_CONFIG,
+    WasmForceField,
+    type IWasmForceModule,
+} from "./sim/ForceField";
 import { HydrogenBondCalculator } from "./sim/HydrogenBondCalculator";
 import { LennardJonesCalculator } from "./sim/LennardJonesCalculator";
 import { ReactionCatalog } from "./sim/ReactionCatalog";
@@ -20,7 +25,11 @@ import { World } from "./sim/World";
 import { PhysicsEngine } from "./sim/PhysicsEngine";
 import { SnapshotCodec } from "./state/SnapshotCodec";
 import { AppShell } from "./ui/AppShell";
-import { AppViewModel, type IEffectSink } from "./ui/AppViewModel";
+import { AppViewModel, type IEffectSink, type PhysicsBackend } from "./ui/AppViewModel";
+
+export interface IApplicationOptions {
+    readonly loadWasmModule?: () => Promise<IWasmForceModule | null>;
+}
 
 export class Application implements IEffectSink {
     private readonly root: HTMLElement;
@@ -43,16 +52,26 @@ export class Application implements IEffectSink {
     private reactionTick: number;
     private pointerDown: { x: number; y: number; button: number; moved: boolean } | null;
     private lastPaint: number;
+    private wasmField: WasmForceField | null;
 
-    public constructor(root: HTMLElement) {
+    public constructor(root: HTMLElement, options: IApplicationOptions = {}) {
         this.root = root;
         const factory = new MoleculeFactory();
         this.registry = new MoleculeRegistry(factory);
         this.engine = new PhysicsEngine(
             [
-                new LennardJonesCalculator(2.2, 3),
-                new CoulombCalculator(60, 20),
-                new HydrogenBondCalculator(3, 3.5),
+                new LennardJonesCalculator(
+                    DEFAULT_FORCE_FIELD_CONFIG.ljEpsilon,
+                    DEFAULT_FORCE_FIELD_CONFIG.ljCutoffScale,
+                ),
+                new CoulombCalculator(
+                    DEFAULT_FORCE_FIELD_CONFIG.coulombStrength,
+                    DEFAULT_FORCE_FIELD_CONFIG.coulombCutoff,
+                ),
+                new HydrogenBondCalculator(
+                    DEFAULT_FORCE_FIELD_CONFIG.hbStrength,
+                    DEFAULT_FORCE_FIELD_CONFIG.hbDistance,
+                ),
             ],
             {
                 temperature: 298,
@@ -87,6 +106,34 @@ export class Application implements IEffectSink {
         this.reactionTick = 0;
         this.pointerDown = null;
         this.lastPaint = 0;
+        this.wasmField = null;
+        this.vm.attachPhysicsControl({
+            setBackend: (mode) => {
+                this.setPhysicsBackend(mode);
+            },
+        });
+        if (options.loadWasmModule !== undefined && WasmForceField.isSupported()) {
+            void this.initializeWasm(options.loadWasmModule);
+        }
+    }
+
+    public setPhysicsBackend(mode: PhysicsBackend): void {
+        if (mode === "wasm" && this.wasmField !== null) {
+            this.engine.setForceField(this.wasmField);
+            this.vm.setPhysicsBackend("wasm");
+        } else {
+            this.engine.setForceField(null);
+            this.vm.setPhysicsBackend("ts");
+        }
+    }
+
+    private async initializeWasm(loader: () => Promise<IWasmForceModule | null>): Promise<void> {
+        const field = await WasmForceField.load(loader, DEFAULT_FORCE_FIELD_CONFIG);
+        if (field !== null) {
+            this.wasmField = field;
+            this.vm.setWasmAvailable(true);
+            this.setPhysicsBackend("wasm");
+        }
     }
 
     public getViewModel(): AppViewModel {

@@ -62,8 +62,8 @@ if (Symbol.dispose) EngineHandle.prototype[Symbol.dispose] = EngineHandle.protot
 
 /**
  * Computes pairwise forces with the same logic as the TypeScript engine:
- * a packed-key spatial grid, a per-instance adaptive query range derived from
- * the calculators, and a per-pair range cull before each force evaluation.
+ * a packed grid, a per-instance adaptive query range, and a per-pair range
+ * cull before each force evaluation. Buffers are reused across calls.
  * @param {Float64Array} positions
  * @param {Float64Array} radii
  * @param {Float64Array} charges

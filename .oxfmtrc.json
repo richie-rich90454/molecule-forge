@@ -18,6 +18,8 @@
     "ignorePatterns": [
         "node_modules/",
         "dist/",
+        "coverage/",
+        "src/chem/data/",
         "bun.lockb",
         "*.min.js",
         "*.min.css",

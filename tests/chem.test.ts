@@ -297,6 +297,66 @@ describe("MoleculeValidatorCases", () => {
         expect(validator.validate(badMass).errors.join(" ")).toContain("mass mismatch");
     });
 
+    it("rejects aromatic atoms without aromatic bonds and mixed aromatic bonds", () => {
+        const validator = new MoleculeValidator();
+        const loneAromatic = makeRecord({
+            formula: "CH",
+            mass: 13.019,
+            atoms: [
+                { el: "C", x: 0, y: 0, z: 0, charge: 0, stereo: null, aromatic: true },
+                { el: "H", x: 1, y: 0, z: 0, charge: 0, stereo: null, aromatic: false },
+            ],
+            bonds: [{ a: 0, b: 1, order: 1, aromatic: false, stereo: null }],
+        });
+        expect(validator.validate(loneAromatic).errors.join(" ")).toContain(
+            "carries no aromatic bond",
+        );
+        const mixedBond = makeRecord({
+            formula: "C2",
+            mass: 24.022,
+            atoms: [
+                { el: "C", x: 0, y: 0, z: 0, charge: 0, stereo: null, aromatic: true },
+                { el: "C", x: 1.4, y: 0, z: 0, charge: 0, stereo: null, aromatic: false },
+            ],
+            bonds: [{ a: 0, b: 1, order: 4, aromatic: true, stereo: null }],
+        });
+        expect(validator.validate(mixedBond).errors.join(" ")).toContain("non-aromatic atom");
+    });
+
+    it("rejects ionic bonds without opposite formal charges", () => {
+        const validator = new MoleculeValidator();
+        const neutralEnd = makeRecord({
+            formula: "NaCl",
+            mass: 58.44,
+            atoms: [
+                { el: "Na", x: 0, y: 0, z: 0, charge: 0, stereo: null, aromatic: false },
+                { el: "Cl", x: 2.5, y: 0, z: 0, charge: -1, stereo: null, aromatic: false },
+            ],
+            bonds: [{ a: 0, b: 1, order: 1, aromatic: false, stereo: null, ionic: true }],
+        });
+        expect(validator.validate(neutralEnd).errors.join(" ")).toContain(
+            "opposite formal charges",
+        );
+        const sameSign = makeRecord({
+            formula: "NaCl",
+            mass: 58.44,
+            atoms: [
+                { el: "Na", x: 0, y: 0, z: 0, charge: 1, stereo: null, aromatic: false },
+                { el: "Cl", x: 2.5, y: 0, z: 0, charge: 1, stereo: null, aromatic: false },
+            ],
+            bonds: [{ a: 0, b: 1, order: 1, aromatic: false, stereo: null, ionic: true }],
+        });
+        expect(validator.validate(sameSign).errors.join(" ")).toContain("opposite formal charges");
+    });
+
+    it("skips ionic bonds whose endpoints are missing", () => {
+        const validator = new MoleculeValidator();
+        const record = makeRecord({
+            bonds: [{ a: 0, b: 9, order: 1, aromatic: false, stereo: null, ionic: true }],
+        });
+        expect(validator.validate(record).errors.join(" ")).toContain("out of range");
+    });
+
     it("parses formulas with and without counts", () => {
         expect(MoleculeValidator.parseFormula("C6H12O6").get("H")).toBe(12);
         expect(MoleculeValidator.parseFormula("He").get("He")).toBe(1);

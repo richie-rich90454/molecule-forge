@@ -6,7 +6,7 @@ Each record starts from a heavy-atom graph with bond orders, formal charges, ste
 
 ## Automatic checks
 
-`MoleculeValidator` runs over all 507 catalogue records in `bun run validate` and in the test suite. Compounds synthesized at runtime are built through the same `MoleculeFactory` path but are not part of the validation sweep, since they do not exist until they form:
+`MoleculeValidator` runs over all 2,703 catalogue records in `bun run validate` and in the test suite. Compounds synthesized at runtime are built through the same `MoleculeFactory` path but are not part of the validation sweep, since they do not exist until they form:
 
 1. Every element is known (hydrogen through plutonium) and every bond index is in range, with no self bonds.
 2. Valence caps hold: aromatic bonds count once, charged atoms get +1 slack, hypervalent phosphorus and sulfur get +2.

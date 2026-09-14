@@ -123,7 +123,7 @@ export class AppViewModel implements IReactionSink {
 
     private readonly recorder: LabRecorder;
     private readonly rules: ReadonlyArray<IReactionRule>;
-    private readonly referenceData: IReferenceData;
+    private referenceData: IReferenceData | null;
 
     public constructor(
         registry: IMoleculeRegistry,
@@ -138,11 +138,7 @@ export class AppViewModel implements IReactionSink {
         this.presets = PresetCatalog.buildPresets();
         this.rules = ReactionCatalog.buildRules();
         this.recorder = new LabRecorder();
-        this.referenceData = {
-            elements: ElementReference.elements(),
-            constants: ElementReference.constants(),
-            equations: ElementReference.equations(),
-        };
+        this.referenceData = null;
         this.logCounter = 0;
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
         this.getCategory = getCategory;
@@ -294,6 +290,13 @@ export class AppViewModel implements IReactionSink {
     }
 
     public getReferenceData(): IReferenceData {
+        if (this.referenceData === null) {
+            this.referenceData = {
+                elements: ElementReference.elements(),
+                constants: ElementReference.constants(),
+                equations: ElementReference.equations(),
+            };
+        }
         return this.referenceData;
     }
 

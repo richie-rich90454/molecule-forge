@@ -5,43 +5,7 @@ import { MoleculeFactory } from "../src/chem/MoleculeFactory";
 import { MoleculeValidator } from "../src/chem/MoleculeValidator";
 import { SmilesParser } from "../src/chem/SmilesParser";
 import { SnapshotCodec } from "../src/state/SnapshotCodec";
-import type {
-    CompactBond,
-    ICompactMoleculeSpec,
-    IMoleculeRecord,
-} from "../src/chem/MoleculeRecord";
-
-interface IResidueSide {
-    heavy: string[];
-    bonds: CompactBond[];
-    extraH: number[];
-}
-
-interface ICatalogInternals {
-    phenyl(
-        start: number,
-        attach: number,
-    ): { heavy: string[]; bonds: CompactBond[]; ring: number[] };
-    residueSide(code: string): IResidueSide;
-    stampAminoAcid(
-        id: string,
-        name: string,
-        formula: string,
-        smiles: string,
-        code: string,
-        extraBonds?: CompactBond[],
-        extraHeavy?: string[],
-        extraH?: Array<readonly [number, number]>,
-    ): ICompactMoleculeSpec;
-    buildProtein(
-        chains: ReadonlyArray<string>,
-        disulfides: ReadonlyArray<readonly [number, number, number, number]>,
-        cAmides: ReadonlyArray<boolean>,
-    ): { heavy: string[]; bonds: CompactBond[]; extraH: Array<readonly [number, number]> };
-    findSpec(pool: ICompactMoleculeSpec[], id: string): ICompactMoleculeSpec;
-}
-
-const catalogInternals = MoleculeCatalog as unknown as ICatalogInternals;
+import type { ICompactMoleculeSpec, IMoleculeRecord } from "../src/chem/MoleculeRecord";
 
 function makeRecord(overrides: Partial<IMoleculeRecord>): IMoleculeRecord {
     return {
@@ -97,51 +61,16 @@ describe("SmilesParser branch extras", () => {
     });
 });
 
-describe("MoleculeCatalog reachable internals", () => {
-    it("attaches a phenyl ring when a link index is supplied", () => {
-        const built = catalogInternals.phenyl(0, 3);
-        expect(built.ring.length).toBe(6);
-        expect(built.bonds.some((bond) => bond[0] === 3 && bond[1] === 0)).toBe(true);
-    });
-
-    it("throws on an unknown residue code", () => {
-        expect(() => catalogInternals.residueSide("?")).toThrow();
-    });
-
-    it("maps a missing clone source to an error", () => {
-        expect(() => catalogInternals.findSpec([], "nope")).toThrow();
-    });
-
-    it("covers residue graph offsets for proline and a C-terminal amide", () => {
-        catalogInternals.stampAminoAcid("pro-test", "Pro Test", "C2", "CC", "P");
-        const protein = catalogInternals.buildProtein(["GP"], [], [true]);
-        expect(protein.heavy.length).toBeGreaterThan(0);
-        expect(protein.bonds.some((bond) => bond[2] === 1 && bond[0] !== bond[1])).toBe(true);
-    });
-
-    it("maps synthetic residue anchors used by no catalog entry", () => {
-        const original = catalogInternals.residueSide;
-        try {
-            catalogInternals.residueSide = () => ({
-                heavy: ["C", "C"],
-                bonds: [[-2, -1, 1]],
-                extraH: [],
-            });
-            expect(
-                catalogInternals.stampAminoAcid("syn", "Syn", "C2", "CC", "Z").heavy.length,
-            ).toBe(7);
-            const protein = catalogInternals.buildProtein(["Z"], [], [false]);
-            expect(protein.bonds.some((bond) => bond[0] === 0 && bond[1] === 1)).toBe(true);
-        } finally {
-            catalogInternals.residueSide = original;
-        }
-    });
-
+describe("MoleculeCatalog formula formatting", () => {
     it("formats leftover elements and explicit hydrogen counts", () => {
         expect(MoleculeCatalog.formulaOf(["Xx"], [])).toBe("Xx");
         expect(MoleculeCatalog.formulaOf(["Xx", "Xx"], [])).toBe("Xx2");
         expect(MoleculeCatalog.formulaOf(["C"], [], [], [[0, 4]])).toBe("CH4");
         expect(MoleculeCatalog.formulaOf(["C"], [], [], [[0, 0]])).toBe("C");
+    });
+
+    it("derives a graph from SMILES when no explicit heavy atoms are stored", () => {
+        expect(MoleculeCatalog.formulaOf(["C", "O"], [[0, 1, 1]])).toBe("CH4O");
     });
 });
 

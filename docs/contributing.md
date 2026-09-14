@@ -8,20 +8,20 @@ Use `bun` for everything. Never `npm` or `npx`; use `bunx` for one-off tools.
 bun install
 bun run dev          # develop with hot reload
 bun run build        # produce the dist folder
-bun run test         # run the Vitest suite (274 tests, 100 percent coverage)
-bun run validate     # validate all 507 molecules
+bun run test         # run the Vitest suite (338 tests, 100 percent coverage)
+bun run validate     # validate all 2,703 molecules
 bun run bake > docs/molecules.md  # regenerate the molecule listing
 bun run docs:dev     # preview this site
 bun run docs:build   # build this site
-cargo test           # run the twelve Rust unit tests
+cargo test           # run the sixteen Rust unit tests
 ```
 
 ## Add a molecule
 
-1. Pick one of the 17 existing categories. Do not invent new ones.
-2. Prefer `smilesDriven` with a PubChem-verified connectivity SMILES for anything with rings or heteroatoms. Verify the parse first with a scratch script comparing `formulaOf` output against the published formula.
-3. For trivial inorganics and gases, use the one-line `gas` helper. For homologous series, write a small generator loop. For peptides, use `buildProtein` with residue codes plus disulfide pairs.
-4. Run `bun run validate`. Fix valence, formula, or geometry complaints until it passes. Common issues: a fusion carbon carrying four bonds plus a double (move the double), a pyrrole nitrogen needing `explicitH`, an aromatic perimeter drawn with single bonds (hydrogens double up).
+1. Add an entry to the JSON file for the molecule's category under `src/chem/data` (one file per tab). `schema.json` in that folder describes the format; every entry needs `id`, `name`, `formula`, `smiles`, `category`, `tags`, `warn`, and `inchi`.
+2. Give a PubChem-verified connectivity SMILES plus the exact formula for anything with rings or heteroatoms. The loader parses the SMILES at load time; the parser supports the full hydrogen-to-plutonium element table, branches, ring closures, bond orders, aromatic `c n o s p`, bracketed charges and hydrogens, and dot-separated components, but not stereochemistry. Use an explicit `heavy` + `bonds` graph only when SMILES cannot express the species (ionic solids, coordination complexes, minerals); add `charges` and `ionicBonds` for salts.
+3. Assign a P0-P8 `priority` (P0 loads first) and useful `tags`. Set `warn` to true only for genuinely hazardous molecules.
+4. Run `bun run validate`. Fix valence, formula, or geometry complaints until it passes. Common issues: a fusion carbon carrying four bonds plus a double (move the double), a pyrrole nitrogen needing `explicitH`, an aromatic perimeter drawn with single bonds (hydrogens double up), or a hypervalent center whose element needs a higher valence allowance.
 5. Run `bun run format`, stage only that file, and commit with a Conventional Commit message.
 
 ## Add an element

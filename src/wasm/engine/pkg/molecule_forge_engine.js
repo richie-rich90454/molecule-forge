@@ -71,6 +71,7 @@ if (Symbol.dispose) EngineHandle.prototype[Symbol.dispose] = EngineHandle.protot
  * @param {Float64Array} charges
  * @param {Float64Array} donors
  * @param {Float64Array} acceptors
+ * @param {Float64Array} masses
  * @param {number} max_radius
  * @param {boolean} has_donor
  * @param {boolean} has_acceptor
@@ -84,7 +85,7 @@ if (Symbol.dispose) EngineHandle.prototype[Symbol.dispose] = EngineHandle.protot
  * @param {number} cutoff
  * @param {Float64Array} out_forces
  */
-export function compute_forces(positions, radii, charges, donors, acceptors, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, out_forces) {
+export function compute_forces(positions, radii, charges, donors, acceptors, masses, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, out_forces) {
     const ptr0 = passArrayF64ToWasm0(positions, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passArrayF64ToWasm0(radii, wasm.__wbindgen_malloc);
@@ -95,9 +96,11 @@ export function compute_forces(positions, radii, charges, donors, acceptors, max
     const len3 = WASM_VECTOR_LEN;
     const ptr4 = passArrayF64ToWasm0(acceptors, wasm.__wbindgen_malloc);
     const len4 = WASM_VECTOR_LEN;
-    var ptr5 = passArrayF64ToWasm0(out_forces, wasm.__wbindgen_malloc);
-    var len5 = WASM_VECTOR_LEN;
-    wasm.compute_forces(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, ptr5, len5, out_forces);
+    const ptr5 = passArrayF64ToWasm0(masses, wasm.__wbindgen_malloc);
+    const len5 = WASM_VECTOR_LEN;
+    var ptr6 = passArrayF64ToWasm0(out_forces, wasm.__wbindgen_malloc);
+    var len6 = WASM_VECTOR_LEN;
+    wasm.compute_forces(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, ptr6, len6, out_forces);
 }
 function __wbg_get_imports() {
     const import0 = {

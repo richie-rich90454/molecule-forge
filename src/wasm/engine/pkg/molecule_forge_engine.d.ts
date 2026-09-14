@@ -15,14 +15,14 @@ export class EngineHandle {
  * a packed-key spatial grid, a per-instance adaptive query range derived from
  * the calculators, and a per-pair range cull before each force evaluation.
  */
-export function compute_forces(positions: Float64Array, radii: Float64Array, charges: Float64Array, donors: Float64Array, acceptors: Float64Array, max_radius: number, has_donor: boolean, has_acceptor: boolean, epsilon: number, lj_cutoff_scale: number, coulomb_strength: number, coulomb_cutoff: number, dielectric: number, hb_strength: number, hb_distance: number, cutoff: number, out_forces: Float64Array): void;
+export function compute_forces(positions: Float64Array, radii: Float64Array, charges: Float64Array, donors: Float64Array, acceptors: Float64Array, masses: Float64Array, max_radius: number, has_donor: boolean, has_acceptor: boolean, epsilon: number, lj_cutoff_scale: number, coulomb_strength: number, coulomb_cutoff: number, dielectric: number, hb_strength: number, hb_distance: number, cutoff: number, out_forces: Float64Array): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_enginehandle_free: (a: number, b: number) => void;
-    readonly compute_forces: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: any) => void;
+    readonly compute_forces: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number, z: any) => void;
     readonly enginehandle_body_count: (a: number) => number;
     readonly enginehandle_new: () => number;
     readonly enginehandle_step_forces: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: any) => void;

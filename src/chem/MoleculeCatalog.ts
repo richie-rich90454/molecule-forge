@@ -4,6 +4,7 @@ import type { CompactBond, ICompactMoleculeSpec, IMoleculeSpecJson } from "./Mol
 
 import alkanes from "./data/alkanes.json";
 import alkenes from "./data/alkenes.json";
+import alkynes from "./data/alkynes.json";
 import amino from "./data/amino.json";
 import aromatics from "./data/aromatics.json";
 import biomolecules from "./data/biomolecules.json";
@@ -11,6 +12,7 @@ import elemental from "./data/elemental.json";
 import exotic from "./data/exotic.json";
 import explosives from "./data/explosives.json";
 import functional from "./data/functional.json";
+import halocarbons from "./data/halocarbons.json";
 import lipids from "./data/lipids.json";
 import natural from "./data/natural.json";
 import neuro from "./data/neuro.json";
@@ -19,12 +21,23 @@ import pharma from "./data/pharma.json";
 import polymers from "./data/polymers.json";
 import sugars from "./data/sugars.json";
 import toxins from "./data/toxins.json";
+import acidsBases from "./data/acids-bases.json";
+import salts from "./data/salts.json";
+import oxidesMinerals from "./data/oxides-minerals.json";
+import coordination from "./data/coordination.json";
+import catalysts from "./data/catalysts.json";
+import dyesPigments from "./data/dyes-pigments.json";
+import pesticides from "./data/pesticides.json";
+import solvents from "./data/solvents.json";
+import vitaminsHormones from "./data/vitamins-hormones.json";
 
 const FILES: ReadonlyArray<ReadonlyArray<IMoleculeSpecJson>> = [
     alkanes,
     alkenes,
+    alkynes,
     aromatics,
     functional,
+    halocarbons,
     amino,
     sugars,
     nucleotides,
@@ -34,6 +47,15 @@ const FILES: ReadonlyArray<ReadonlyArray<IMoleculeSpecJson>> = [
     polymers,
     explosives,
     toxins,
+    pesticides,
+    dyesPigments,
+    solvents,
+    vitaminsHormones,
+    acidsBases,
+    salts,
+    oxidesMinerals,
+    coordination,
+    catalysts,
     exotic,
     biomolecules,
     natural,

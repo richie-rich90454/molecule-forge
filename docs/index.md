@@ -20,12 +20,12 @@ features:
       details: Rigid bodies with Lennard-Jones, screened Coulomb, and hydrogen-bond forces on a spatial hash grid. Cold scenes crystallize, hot scenes vaporize, nothing is scripted.
     - title: Scratch the surface, then ignite it
       details: Fourteen hand-authored reaction rules for combustion, polymerization, neutralization, and detonation, plus general combustion, halogenation, redox, synthesis, and pyrolysis engines for everything else.
-    - title: One file, anywhere
-      details: The production build is a single dist/index.html. Double-click it, or host it on any static server. No fetch of local assets, no SharedArrayBuffer, no backend.
+    - title: Self-contained folder
+      details: The production build is a complete dist folder - index.html, JavaScript, CSS, the WebAssembly force engine, and the bundled Noto fonts. Serve it from any static file server. No backend, no CDN.
     - title: Deterministic scenarios
       details: Thirty-seven seeded presets reproduce exactly. URL hashes encode the full universe, so the Share button copies a working link to any state.
     - title: Fast on real displays
-      details: DPR-aware canvas up to 4.0, uncapped rendering with interpolated 240 Hz physics, instanced draw calls, and adaptive quality that sheds load instead of frames.
+      details: DPR-aware canvas up to 4.0, uncapped rendering with interpolated 240 Hz physics, a WebAssembly force engine, instanced draw calls, and adaptive quality that sheds load instead of frames.
 ---
 
 ## Quickstart
@@ -33,9 +33,9 @@ features:
 ```bash
 bun install
 bun run dev       # develop with hot reload
-bun run build     # produce dist/index.html
-bun run test      # run the Vitest suite (274 tests, 100 percent coverage)
+bun run build     # produce the dist folder
+bun run test      # run the Vitest suite (334 tests, 100 percent coverage)
 bun run validate  # validate all 507 molecules
 ```
 
-Open `dist/index.html` directly in any modern browser. Pick a molecule card, click the canvas to place it, drag sliders to change conditions, and press Spark. For the chemistry model, open the Elements tab and set two reactive atoms next to each other.
+Serve the `dist` folder with any static file server (for example `caddy file-server --root dist`) and open it in a modern browser. Pick a molecule card, click the canvas to place it, drag sliders to change conditions, and press Spark. For the chemistry model, open the Elements tab and set two reactive atoms next to each other.

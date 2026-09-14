@@ -5,11 +5,13 @@
   "files": [
     "molecule_forge_engine_bg.wasm",
     "molecule_forge_engine.js",
+    "molecule_forge_engine_bg.js",
     "molecule_forge_engine.d.ts"
   ],
   "main": "molecule_forge_engine.js",
   "types": "molecule_forge_engine.d.ts",
   "sideEffects": [
+    "./molecule_forge_engine.js",
     "./snippets/*"
   ]
 }

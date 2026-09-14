@@ -3,9 +3,12 @@
 
 import { defineConfig } from "vitest/config";
 import solidPlugin from "vite-plugin-solid";
+import wasm from "vite-plugin-wasm";
+
+const testing = process.env.VITEST !== undefined;
 
 export default defineConfig({
-    plugins: [solidPlugin({ hot: false })],
+    plugins: [...(testing ? [] : [wasm()]), solidPlugin({ hot: false })],
     base: "./",
     server: {
         port: 3000,

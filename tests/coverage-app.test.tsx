@@ -529,8 +529,11 @@ function pointerEvent(
     return event;
 }
 
-function installApplication(root: HTMLElement): Application {
-    const app = new Application(root);
+function installApplication(
+    root: HTMLElement,
+    options?: ConstructorParameters<typeof Application>[1],
+): Application {
+    const app = new Application(root, options);
     (app.getViewModel().getWorld() as unknown as { boxSize: number }).boxSize = 60;
     return app;
 }
@@ -787,5 +790,99 @@ describe("Application coverage", () => {
             vi.useRealTimers();
             window.location.hash = "";
         }
+    });
+});
+
+describe("Physics backend coverage", () => {
+    it("toggles the backend only when wasm is available", () => {
+        const { vm } = makeVm();
+        vm.togglePhysics();
+        expect(vm.getPhysicsBackend()).toBe("ts");
+        const calls: string[] = [];
+        vm.attachPhysicsControl({
+            setBackend: (mode) => {
+                calls.push(mode);
+                vm.setPhysicsBackend(mode);
+            },
+        });
+        vm.togglePhysics();
+        expect(calls.length).toBe(0);
+        vm.setWasmAvailable(true);
+        vm.togglePhysics();
+        vm.togglePhysics();
+        expect(calls).toEqual(["wasm", "ts"]);
+    });
+
+    it("activates the wasm force field when it loads", async () => {
+        const root = document.createElement("div");
+        const app = installApplication(root, {
+            loadWasmModule: async () => ({ compute_forces: () => {} }),
+        });
+        await vi.waitFor(() => {
+            expect(app.getViewModel().getWasmAvailable()).toBe(true);
+        });
+        expect(app.getViewModel().getPhysicsBackend()).toBe("wasm");
+        app.setPhysicsBackend("ts");
+        expect(app.getViewModel().getPhysicsBackend()).toBe("ts");
+        app.setPhysicsBackend("wasm");
+        expect(app.getViewModel().getPhysicsBackend()).toBe("wasm");
+        app.getViewModel().togglePhysics();
+        expect(app.getViewModel().getPhysicsBackend()).toBe("ts");
+        app.getViewModel().togglePhysics();
+        expect(app.getViewModel().getPhysicsBackend()).toBe("wasm");
+        app.stop();
+        root.remove();
+    });
+
+    it("stays on the javascript engine when wasm is unavailable", async () => {
+        const root = document.createElement("div");
+        const app = installApplication(root, { loadWasmModule: async () => null });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(app.getViewModel().getWasmAvailable()).toBe(false);
+        app.setPhysicsBackend("wasm");
+        expect(app.getViewModel().getPhysicsBackend()).toBe("ts");
+        app.stop();
+        root.remove();
+    });
+
+    it("skips wasm entirely when the platform lacks it", () => {
+        const real = (globalThis as { WebAssembly?: unknown }).WebAssembly;
+        (globalThis as { WebAssembly?: unknown }).WebAssembly = undefined;
+        try {
+            const root = document.createElement("div");
+            const app = installApplication(root, { loadWasmModule: async () => null });
+            expect(app.getViewModel().getWasmAvailable()).toBe(false);
+            app.stop();
+            root.remove();
+        } finally {
+            (globalThis as { WebAssembly?: unknown }).WebAssembly = real;
+        }
+    });
+
+    it("toggles the backend from the topbar", () => {
+        const { vm } = makeVm();
+        const callbacks = {
+            onCanvasMount: () => {},
+            onResetCamera: () => {},
+            onControlsChange: () => {},
+        };
+        const { unmount } = render(() => AppShell({ vm, callbacks }));
+        const button = screen.getByTitle(
+            "Switch the force engine between WebAssembly and JavaScript",
+        ) as HTMLButtonElement;
+        expect(button.disabled).toBe(true);
+        fireEvent.click(button);
+        expect(vm.getPhysicsBackend()).toBe("ts");
+        const calls: string[] = [];
+        vm.attachPhysicsControl({
+            setBackend: (mode) => {
+                calls.push(mode);
+                vm.setPhysicsBackend(mode);
+            },
+        });
+        vm.setWasmAvailable(true);
+        fireEvent.click(button);
+        expect(calls).toEqual(["wasm"]);
+        unmount();
     });
 });

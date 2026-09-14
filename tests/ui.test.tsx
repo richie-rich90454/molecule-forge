@@ -511,8 +511,8 @@ describe("LibraryViews", () => {
         const { vm } = makeVm();
         const { unmount } = render(() => TabsView({ vm }));
         const buttons = screen.getAllByRole("button");
-        expect(buttons.length).toBe(17);
-        fireEvent.click(buttons[12]);
+        expect(buttons.length).toBe(28);
+        fireEvent.click(screen.getByText("Toxins"));
         expect(vm.getCategory()).toBe("toxins");
         unmount();
     });

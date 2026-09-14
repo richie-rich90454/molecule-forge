@@ -3,10 +3,9 @@
 
 import { defineConfig } from "vitest/config";
 import solidPlugin from "vite-plugin-solid";
-import { viteSingleFile } from "vite-plugin-singlefile";
 
 export default defineConfig({
-    plugins: [solidPlugin({ hot: false }), viteSingleFile()],
+    plugins: [solidPlugin({ hot: false })],
     base: "./",
     server: {
         port: 3000,
@@ -31,7 +30,6 @@ export default defineConfig({
     },
     build: {
         target: "esnext",
-        assetsInlineLimit: 100000000,
         chunkSizeWarningLimit: 30000,
     },
     resolve: {

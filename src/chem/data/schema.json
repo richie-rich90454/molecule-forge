@@ -1,0 +1,132 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://molecule-forge.local/schema/molecule.json",
+    "title": "Molecule Forge molecule spec",
+    "description": "One file per category under src/chem/data. Each file is an array of molecule specs. A spec either carries an explicit heavy-atom graph (heavy + bonds) or a connectivity SMILES that is parsed at load; the declared formula is cross-checked against the derived graph by MoleculeValidator.",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "formula", "smiles", "category", "tags", "warn", "inchi"],
+        "properties": {
+            "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$",
+                "description": "Unique kebab-case identifier."
+            },
+            "name": { "type": "string", "minLength": 1 },
+            "formula": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Hill-style formula; must match the derived graph exactly."
+            },
+            "smiles": {
+                "type": "string",
+                "description": "PubChem connectivity SMILES, or an empty string when an explicit graph is supplied."
+            },
+            "category": {
+                "enum": [
+                    "alkanes",
+                    "alkenes",
+                    "alkynes",
+                    "aromatics",
+                    "functional",
+                    "halocarbons",
+                    "amino",
+                    "sugars",
+                    "nucleotides",
+                    "nucleic-acids",
+                    "proteins",
+                    "lipids",
+                    "pharma",
+                    "neuro",
+                    "polymers",
+                    "explosives",
+                    "toxins",
+                    "pesticides",
+                    "dyes-pigments",
+                    "solvents",
+                    "vitamins-hormones",
+                    "acids-bases",
+                    "salts",
+                    "oxides-minerals",
+                    "coordination",
+                    "catalysts",
+                    "exotic",
+                    "biomolecules",
+                    "natural",
+                    "elemental"
+                ]
+            },
+            "priority": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "description": "P0 (most common, loads first) through P8 (rarest). Drives progressive build order."
+            },
+            "tags": { "type": "array", "items": { "type": "string" } },
+            "warn": { "type": "boolean" },
+            "inchi": { "type": "string" },
+            "heavy": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Heavy-atom element symbols in graph order."
+            },
+            "bonds": {
+                "type": "array",
+                "description": "[a, b, order, stereo?] with order 1/2/3/4 (4 marks aromatic).",
+                "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 4,
+                    "prefixItems": [
+                        { "type": "integer", "minimum": 0 },
+                        { "type": "integer", "minimum": 0 },
+                        { "type": "integer", "enum": [1, 2, 3, 4] },
+                        { "type": "string" }
+                    ]
+                }
+            },
+            "charges": {
+                "type": "array",
+                "description": "[atomIndex, formalCharge] pairs.",
+                "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "prefixItems": [{ "type": "integer", "minimum": 0 }, { "type": "integer" }]
+                }
+            },
+            "explicitH": {
+                "type": "array",
+                "description": "[atomIndex, attachedHydrogenCount] overrides.",
+                "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "prefixItems": [
+                        { "type": "integer", "minimum": 0 },
+                        { "type": "integer", "minimum": 0 }
+                    ]
+                }
+            },
+            "ionicBonds": {
+                "type": "array",
+                "description": "[a, b] pairs whose two ends carry opposite formal charges.",
+                "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "prefixItems": [
+                        { "type": "integer", "minimum": 0 },
+                        { "type": "integer", "minimum": 0 }
+                    ]
+                }
+            }
+        },
+        "anyOf": [
+            { "required": ["heavy", "bonds"] },
+            { "properties": { "smiles": { "minLength": 1 } }, "required": ["smiles"] }
+        ]
+    }
+}

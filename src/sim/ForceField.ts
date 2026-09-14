@@ -6,6 +6,7 @@ export interface IForceFieldConfig {
     readonly hbStrength: number;
     readonly hbDistance: number;
     readonly cutoff: number;
+    readonly cellSize: number;
 }
 
 export interface IForceFieldInput {
@@ -42,6 +43,7 @@ export interface IWasmForceModule {
         hbStrength: number,
         hbDistance: number,
         cutoff: number,
+        cellSize: number,
         outForces: Float64Array,
     ): void;
 }
@@ -58,6 +60,7 @@ export const DEFAULT_FORCE_FIELD_CONFIG: IForceFieldConfig = {
     hbStrength: 3,
     hbDistance: 3.5,
     cutoff: 10,
+    cellSize: 10,
 };
 
 export class WasmForceField implements IForceFieldBackend {
@@ -88,6 +91,7 @@ export class WasmForceField implements IForceFieldBackend {
             this.config.hbStrength,
             this.config.hbDistance,
             this.config.cutoff,
+            this.config.cellSize,
             input.outForces,
         );
     }

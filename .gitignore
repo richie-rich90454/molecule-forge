@@ -32,3 +32,6 @@ Thumbs.db
 # Rust
 **/target/
 src/wasm/engine/Cargo.lock
+
+# Generated wasm package (rebuild with `bun run wasm:build`, tracked so the app builds without Rust)
+src/wasm/engine/pkg/

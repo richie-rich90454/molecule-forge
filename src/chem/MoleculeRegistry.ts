@@ -57,6 +57,15 @@ export class MoleculeRegistry implements IMoleculeRegistry {
         return this.specs.map((spec) => this.build(spec));
     }
 
+    public getCategoryIds(category: MoleculeCategory): ReadonlyArray<string> {
+        const specs = this.specsByCategory.get(category);
+        return specs === undefined ? [] : specs.map((spec) => spec.id);
+    }
+
+    public getBuiltRecord(id: string): IMoleculeRecord | undefined {
+        return this.cache.get(id);
+    }
+
     public findById(id: string): IMoleculeRecord | undefined {
         const spec = this.specsById.get(id);
         return spec === undefined ? undefined : this.build(spec);

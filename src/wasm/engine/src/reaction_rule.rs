@@ -7,11 +7,21 @@ pub struct ReactionCondition {
 
 impl ReactionCondition {
     pub fn new() -> Self {
-        Self { temp_min: None, temp_max: None, needs_spark: false, needs_catalyst: false }
+        Self {
+            temp_min: None,
+            temp_max: None,
+            needs_spark: false,
+            needs_catalyst: false,
+        }
     }
 
     pub fn with_hot(min: f64) -> Self {
-        Self { temp_min: Some(min), temp_max: None, needs_spark: false, needs_catalyst: false }
+        Self {
+            temp_min: Some(min),
+            temp_max: None,
+            needs_spark: false,
+            needs_catalyst: false,
+        }
     }
 
     pub fn is_met(&self, temperature: f64, spark: f64, catalyst: f64) -> bool {
@@ -49,7 +59,11 @@ pub struct ReactionRule {
 
 impl ReactionRule {
     pub fn new(id: &str, activation_energy: f64, delta_h: f64) -> Self {
-        Self { id: id.to_string(), activation_energy, delta_h }
+        Self {
+            id: id.to_string(),
+            activation_energy,
+            delta_h,
+        }
     }
 
     pub fn rate(&self, temperature: f64, boost: f64) -> f64 {

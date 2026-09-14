@@ -99,7 +99,6 @@ impl EngineHandle {
     }
 }
 
-const CELL: f64 = 10.0;
 const FORCE_CLAMP: f64 = 4000.0;
 
 #[inline]
@@ -133,6 +132,7 @@ fn query_range(
 struct Grid {
     head: Vec<i32>,
     next: Vec<i32>,
+    cell: f64,
     origin_x: i32,
     origin_y: i32,
     origin_z: i32,
@@ -167,6 +167,7 @@ impl Grid {
         hb_strength: f64,
         hb_distance: f64,
         cutoff: f64,
+        cell_size: f64,
         out_forces: &mut [f64],
     ) {
         let count = (positions.len() / 3)
@@ -182,6 +183,7 @@ impl Grid {
         if count == 0 {
             return;
         }
+        self.cell = if cell_size > 0.0 { cell_size } else { 10.0 };
 
         let mut min_x = f64::INFINITY;
         let mut min_y = f64::INFINITY;
@@ -212,12 +214,12 @@ impl Grid {
                 max_z = z;
             }
         }
-        self.origin_x = (min_x / CELL).floor() as i32;
-        self.origin_y = (min_y / CELL).floor() as i32;
-        self.origin_z = (min_z / CELL).floor() as i32;
-        self.dim_x = ((max_x / CELL).floor() as i32 - self.origin_x + 1).max(1);
-        self.dim_y = ((max_y / CELL).floor() as i32 - self.origin_y + 1).max(1);
-        self.dim_z = ((max_z / CELL).floor() as i32 - self.origin_z + 1).max(1);
+        self.origin_x = (min_x / self.cell).floor() as i32;
+        self.origin_y = (min_y / self.cell).floor() as i32;
+        self.origin_z = (min_z / self.cell).floor() as i32;
+        self.dim_x = ((max_x / self.cell).floor() as i32 - self.origin_x + 1).max(1);
+        self.dim_y = ((max_y / self.cell).floor() as i32 - self.origin_y + 1).max(1);
+        self.dim_z = ((max_z / self.cell).floor() as i32 - self.origin_z + 1).max(1);
 
         let product = self.dim_x as usize * self.dim_y as usize * self.dim_z as usize;
         if self.head.len() < product {
@@ -230,9 +232,9 @@ impl Grid {
             self.next.resize(count, -1);
         }
         for i in (0..count).rev() {
-            let cx = (positions[i * 3] / CELL).floor() as i32 - self.origin_x;
-            let cy = (positions[i * 3 + 1] / CELL).floor() as i32 - self.origin_y;
-            let cz = (positions[i * 3 + 2] / CELL).floor() as i32 - self.origin_z;
+            let cx = (positions[i * 3] / self.cell).floor() as i32 - self.origin_x;
+            let cy = (positions[i * 3 + 1] / self.cell).floor() as i32 - self.origin_y;
+            let cz = (positions[i * 3 + 2] / self.cell).floor() as i32 - self.origin_z;
             let index = self.cell_index(cx, cy, cz);
             self.next[i] = self.head[index];
             self.head[index] = i as i32;
@@ -273,12 +275,12 @@ impl Grid {
             if query <= 0.0 {
                 continue;
             }
-            let min_cx = (((ax - query) / CELL).floor() as i32 - origin_x).clamp(0, last_x);
-            let max_cx = (((ax + query) / CELL).floor() as i32 - origin_x).clamp(0, last_x);
-            let min_cy = (((ay - query) / CELL).floor() as i32 - origin_y).clamp(0, last_y);
-            let max_cy = (((ay + query) / CELL).floor() as i32 - origin_y).clamp(0, last_y);
-            let min_cz = (((az - query) / CELL).floor() as i32 - origin_z).clamp(0, last_z);
-            let max_cz = (((az + query) / CELL).floor() as i32 - origin_z).clamp(0, last_z);
+            let min_cx = (((ax - query) / self.cell).floor() as i32 - origin_x).clamp(0, last_x);
+            let max_cx = (((ax + query) / self.cell).floor() as i32 - origin_x).clamp(0, last_x);
+            let min_cy = (((ay - query) / self.cell).floor() as i32 - origin_y).clamp(0, last_y);
+            let max_cy = (((ay + query) / self.cell).floor() as i32 - origin_y).clamp(0, last_y);
+            let min_cz = (((az - query) / self.cell).floor() as i32 - origin_z).clamp(0, last_z);
+            let max_cz = (((az + query) / self.cell).floor() as i32 - origin_z).clamp(0, last_z);
             let r2 = query * query;
             for cx in min_cx..=max_cx {
                 for cy in min_cy..=max_cy {
@@ -371,6 +373,7 @@ pub fn compute_forces(
     hb_strength: f64,
     hb_distance: f64,
     cutoff: f64,
+    cell_size: f64,
     out_forces: &mut [f64],
 ) {
     GRID.with(|grid| {
@@ -392,6 +395,7 @@ pub fn compute_forces(
             hb_strength,
             hb_distance,
             cutoff,
+            cell_size,
             out_forces,
         );
     });
@@ -422,6 +426,7 @@ mod tests {
             20.0,
             3.0,
             3.5,
+            10.0,
             10.0,
             &mut out,
         );

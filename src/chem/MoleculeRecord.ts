@@ -1,23 +1,55 @@
 export type MoleculeCategory =
     | "alkanes"
     | "alkenes"
+    | "alkynes"
     | "aromatics"
     | "functional"
+    | "halocarbons"
     | "amino"
     | "sugars"
     | "nucleotides"
+    | "nucleic-acids"
+    | "proteins"
     | "lipids"
     | "pharma"
     | "neuro"
     | "polymers"
     | "explosives"
     | "toxins"
+    | "pesticides"
+    | "dyes-pigments"
+    | "solvents"
+    | "vitamins-hormones"
+    | "acids-bases"
+    | "salts"
+    | "oxides-minerals"
+    | "coordination"
+    | "catalysts"
     | "exotic"
     | "biomolecules"
     | "natural"
     | "elemental";
 
 export type BondOrder = 1 | 2 | 3 | 4;
+
+export type MoleculePriority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+export interface IMoleculeSpecJson {
+    readonly id: string;
+    readonly name: string;
+    readonly formula: string;
+    readonly smiles: string;
+    readonly category: MoleculeCategory;
+    readonly priority?: number;
+    readonly tags: ReadonlyArray<string>;
+    readonly warn: boolean;
+    readonly inchi: string;
+    readonly heavy?: ReadonlyArray<string>;
+    readonly bonds?: ReadonlyArray<readonly [number, number, number, string?]>;
+    readonly charges?: ReadonlyArray<readonly [number, number]>;
+    readonly explicitH?: ReadonlyArray<readonly [number, number]>;
+    readonly ionicBonds?: ReadonlyArray<readonly [number, number]>;
+}
 
 export interface IAtomSpec {
     readonly el: string;
@@ -61,6 +93,7 @@ export interface IMoleculeRecord {
     readonly category: MoleculeCategory;
     readonly tags: ReadonlyArray<string>;
     readonly warn: boolean;
+    readonly priority?: number;
     readonly mass: number;
     readonly atoms: ReadonlyArray<IAtomSpec>;
     readonly bonds: ReadonlyArray<IBondSpec>;
@@ -79,6 +112,7 @@ export interface ICompactMoleculeSpec {
     readonly tags: ReadonlyArray<string>;
     readonly warn: boolean;
     readonly inchi: string;
+    readonly priority?: number;
     readonly heavy: ReadonlyArray<string>;
     readonly bonds: ReadonlyArray<CompactBond>;
     readonly charges: ReadonlyArray<readonly [number, number]>;

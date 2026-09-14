@@ -180,6 +180,7 @@ export class Application implements IEffectSink {
 
     public stop(): void {
         this.running = false;
+        this.vm.dispose();
     }
 
     public flash(x: number, y: number, z: number, color: string, size: number): void {

@@ -2,7 +2,7 @@
 
 ## Geometry pipeline
 
-Each record starts from a heavy-atom graph with bond orders, formal charges, stereochemistry flags, and aromaticity marks. Compact graphs come from hand-built records or from PubChem connectivity SMILES transcribed through `SmilesParser`. `MoleculeFactory` expands implicit hydrogens from valence rules (with per-atom overrides for pyrrole nitrogens and ions), embeds 3D coordinates with CSD-derived bond lengths and ideal hybridization geometries chosen to avoid folding back on the parent bond, drops hydrogens onto the emptiest directions, then relaxes everything: bonded springs pull toward reference lengths while a 27-cell spatial grid pushes non-bonded overlaps apart, stopping early once the worst error drops under 0.15 angstroms. Multi-component records (salts, base pairs) offset so counterions sit sensibly apart.
+Each record starts from a heavy-atom graph with bond orders, formal charges, stereochemistry flags, and aromaticity marks. Compact graphs come from hand-built records or from PubChem connectivity SMILES transcribed through `SmilesParser`. `MoleculeFactory` expands implicit hydrogens from valence rules (with per-atom overrides for pyrrole nitrogens and ions), embeds 3D coordinates with CSD-derived bond lengths and ideal hybridization geometries chosen to avoid folding back on the parent bond, drops hydrogens onto the emptiest directions, then relaxes everything: bonded springs pull toward reference lengths while a flat-hash spatial grid walks occupied cell pairs to push non-bonded overlaps apart, stopping early once the worst error drops under 0.15 angstroms. Multi-component records (salts, base pairs) offset so counterions sit sensibly apart.
 
 ## Automatic checks
 

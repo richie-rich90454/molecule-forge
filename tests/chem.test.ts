@@ -191,6 +191,8 @@ describe("MoleculeRegistryExtras", () => {
         const registry = new MoleculeRegistry(new MoleculeFactory());
         expect(registry.getRecords("alkanes").length).toBeGreaterThan(0);
         expect(registry.getRecords("nope" as never).length).toBe(0);
+        expect(registry.getCategoryIds("nope" as never).length).toBe(0);
+        expect(registry.getBuiltRecord("missing-id")).toBeUndefined();
         expect(registry.findById("missing-id")).toBeUndefined();
     });
 

@@ -81,9 +81,10 @@ if (Symbol.dispose) EngineHandle.prototype[Symbol.dispose] = EngineHandle.protot
  * @param {number} hb_strength
  * @param {number} hb_distance
  * @param {number} cutoff
+ * @param {number} cell_size
  * @param {Float64Array} out_forces
  */
-export function compute_forces(positions, radii, charges, donors, acceptors, masses, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, out_forces) {
+export function compute_forces(positions, radii, charges, donors, acceptors, masses, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, cell_size, out_forces) {
     const ptr0 = passArrayF64ToWasm0(positions, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passArrayF64ToWasm0(radii, wasm.__wbindgen_malloc);
@@ -98,7 +99,7 @@ export function compute_forces(positions, radii, charges, donors, acceptors, mas
     const len5 = WASM_VECTOR_LEN;
     var ptr6 = passArrayF64ToWasm0(out_forces, wasm.__wbindgen_malloc);
     var len6 = WASM_VECTOR_LEN;
-    wasm.compute_forces(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, ptr6, len6, out_forces);
+    wasm.compute_forces(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, max_radius, has_donor, has_acceptor, epsilon, lj_cutoff_scale, coulomb_strength, coulomb_cutoff, dielectric, hb_strength, hb_distance, cutoff, cell_size, ptr6, len6, out_forces);
 }
 export function __wbg___wbindgen_copy_to_typed_array_c5728021fabd0236(arg0, arg1, arg2) {
     new Uint8Array(arg2.buffer, arg2.byteOffset, arg2.byteLength).set(getArrayU8FromWasm0(arg0, arg1));

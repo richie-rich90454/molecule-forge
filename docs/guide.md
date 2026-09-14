@@ -76,6 +76,10 @@ The **Explain** panel turns an observation into the chemistry behind it:
 
 Nothing here invents data: every field is read from the molecule record or the reaction rule.
 
+## Force engine
+
+The top bar carries a **Physics WASM / JS** button. When the browser supports WebAssembly the app loads the compiled Rust force loop and uses it by default; the button switches back to the JavaScript loop at any time, and is disabled if WebAssembly is not available. Both engines run the identical algorithm, so scenes play the same either way — the wasm path is just faster on large chambers.
+
 ## Atom budget
 
 The chamber holds at most 2500 molecules and 200000 atoms. Giant structures like DNA duplexes and insulin consume budget fast. When the budget fills, spawning refuses with a log line instead of crashing the tab. Clear or erase to make room. Synthesis respects the same budget: it will not consume reactants if the products would overflow the chamber.

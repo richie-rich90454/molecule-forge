@@ -80,6 +80,21 @@ export class RedoxEngine {
         for (const metal of freeMetals) {
             const metalElement = metal.record.atoms[0].el;
             this.grid.queryRadius(metal.px, metal.py, metal.pz, this.radius, this.nearby);
+            let eligible = false;
+            for (const salt of this.nearby) {
+                const info = this.saltInfoOf(salt.record);
+                if (info === null || info.metal === metalElement) {
+                    continue;
+                }
+                const cell = Thermochemistry.cellPotential(metalElement, info.metal);
+                if (cell !== null && cell > 0) {
+                    eligible = true;
+                    break;
+                }
+            }
+            if (!eligible) {
+                continue;
+            }
             this.nearby.sort(RedoxEngine.byId);
             for (const salt of this.nearby) {
                 const info = this.saltInfoOf(salt.record);

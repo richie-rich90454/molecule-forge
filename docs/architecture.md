@@ -20,4 +20,4 @@ Data in, records out. `MoleculeCatalog` holds compact graph specs and builders f
 
 ## Single-file strategy
 
-Vite builds with `base: "./"` and `vite-plugin-singlefile` inlines JavaScript, CSS, and data into one `dist/index.html`. Molecule data is statically imported, never fetched. No dynamic imports, no `SharedArrayBuffer`, no runtime network. The Rust core mirrors the hot math and compiles warning-free with twelve unit tests; TypeScript is the current runtime path.
+Vite builds with `base: "./"` and `vite-plugin-singlefile` inlines JavaScript, CSS, and data into one `dist/index.html`. Molecule data is statically imported, never fetched. No dynamic imports, no `SharedArrayBuffer`, no runtime network. A standalone experimental Rust crate lives in `src/wasm/engine` and is described in the physics chapter; it is not part of the build, and TypeScript is the runtime path.

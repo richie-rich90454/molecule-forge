@@ -51,6 +51,7 @@ export class OxidationEngine {
     private readonly nearby: MoleculeInstance[];
     private readonly reagents: IReagent[];
     private readonly oxygenList: MoleculeInstance[];
+    private readonly fuelCounts: Map<string, number>;
 
     public constructor(registry: IMoleculeRegistry, factory: MoleculeFactory, radius: number = 7) {
         this.registry = registry;
@@ -62,6 +63,7 @@ export class OxidationEngine {
         this.nearby = [];
         this.reagents = [];
         this.oxygenList = [];
+        this.fuelCounts = new Map();
     }
 
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
@@ -158,21 +160,27 @@ export class OxidationEngine {
         if (oxygen.length === 0) {
             return;
         }
-        const radiusSq = this.radius * this.radius;
+        const counts = this.fuelCounts;
+        counts.clear();
+        for (const inst of instances) {
+            counts.set(inst.record.id, (counts.get(inst.record.id) ?? 0) + 1);
+        }
         for (const fuel of instances) {
             const plan = this.planOf(fuel.record);
             if (plan === null) {
                 continue;
             }
-            if (!OxidationEngine.hasIgnitionContact(fuel, oxygen, radiusSq)) {
-                continue;
-            }
-            let fuelAvailable = 0;
-            for (const inst of instances) {
-                if (inst.record.id === fuel.record.id) {
-                    fuelAvailable++;
+            let contact = false;
+            for (const other of this.nearbyOf(fuel)) {
+                if (OxidationEngine.isDioxygen(other.record)) {
+                    contact = true;
+                    break;
                 }
             }
+            if (!contact) {
+                continue;
+            }
+            const fuelAvailable = counts.get(fuel.record.id) as number;
             const extent = Math.floor(
                 Math.min(fuelAvailable / plan.fuelUnits, oxygen.length / plan.oxygen),
             );
@@ -184,19 +192,6 @@ export class OxidationEngine {
             this.burn(world, fuel, plan, extent, oxidizers, fuels, rng, sink);
             return;
         }
-    }
-
-    private static hasIgnitionContact(
-        fuel: MoleculeInstance,
-        oxygen: ReadonlyArray<MoleculeInstance>,
-        radiusSq: number,
-    ): boolean {
-        for (const oxy of oxygen) {
-            if (OxidationEngine.distanceSq(fuel, oxy) <= radiusSq) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private nearestOf(

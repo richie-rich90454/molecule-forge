@@ -57,6 +57,7 @@ export class MoleculeFactory {
             category: spec.category,
             tags: spec.tags,
             warn: spec.warn,
+            priority: spec.priority,
             mass,
             atoms: atomSpecs,
             bonds: bondSpecs,

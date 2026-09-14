@@ -706,6 +706,14 @@ describe("PhysicsEngine force field backend", () => {
         return { engine, world: new World(engine, 7) };
     }
 
+    function spawnMany(world: World, count: number): ReturnType<World["spawn"]>[] {
+        const spawned: ReturnType<World["spawn"]>[] = [];
+        for (let i = 0; i < count; i++) {
+            spawned.push(world.spawn(methaneRecord(), i * 0.6, 0, 0, 0));
+        }
+        return spawned;
+    }
+
     it("delegates forces to the backend and applies them", () => {
         const { engine, world } = makeEngineWorld();
         const inputs: Array<{ positions: Float64Array; outForces: Float64Array }> = [];
@@ -716,14 +724,28 @@ describe("PhysicsEngine force field backend", () => {
             },
         });
         const instance = world.spawn(methaneRecord(), 0, 0, 0, 0);
+        spawnMany(world, 16);
         world.step(1 / 240, new SeededRandom(1));
         expect(inputs.length).toBe(1);
-        expect(inputs[0].positions.length).toBe(3);
+        expect(inputs[0].positions.length).toBe(51);
 
         const before = instance.vx;
         world.step(1 / 240, new SeededRandom(2));
         expect(inputs.length).toBe(2);
         expect(instance.vx).not.toBe(before);
+    });
+
+    it("uses the internal loop below the instance threshold", () => {
+        const { engine, world } = makeEngineWorld();
+        let calls = 0;
+        engine.setForceField({
+            compute: () => {
+                calls++;
+            },
+        });
+        spawnMany(world, 15);
+        world.step(1 / 240, new SeededRandom(9));
+        expect(calls).toBe(0);
     });
 
     it("skips dead instances and empty chambers", () => {
@@ -740,10 +762,24 @@ describe("PhysicsEngine force field backend", () => {
 
         const alive = world.spawn(methaneRecord(), 0, 0, 0, 0);
         const dead = world.spawn(methaneRecord(), 2, 0, 0, 0);
+        spawnMany(world, 14);
         dead.alive = false;
         world.step(1 / 240, new SeededRandom(2));
         expect(calls).toBe(1);
         expect(alive.vx).toBeDefined();
+
+        const allDead = makeEngineWorld();
+        let deadCalls = 0;
+        allDead.engine.setForceField({
+            compute: () => {
+                deadCalls++;
+            },
+        });
+        for (const inst of spawnMany(allDead.world, 16)) {
+            inst.alive = false;
+        }
+        allDead.world.step(1 / 240, new SeededRandom(5));
+        expect(deadCalls).toBe(0);
     });
 
     it("switches back to the internal engine when cleared", () => {
@@ -754,8 +790,7 @@ describe("PhysicsEngine force field backend", () => {
                 calls++;
             },
         });
-        world.spawn(methaneRecord(), 0, 0, 0, 0);
-        world.spawn(methaneRecord(), 0.8, 0, 0, 0);
+        spawnMany(world, 17);
         world.step(1 / 240, new SeededRandom(3));
         expect(calls).toBe(1);
         engine.setForceField(null);

@@ -32,6 +32,8 @@ export interface IApplicationOptions {
 }
 
 export class Application implements IEffectSink {
+    private static readonly PHYSICS_BUDGET_MS = 6;
+
     private readonly root: HTMLElement;
     private readonly registry: MoleculeRegistry;
     private readonly world: World;
@@ -52,6 +54,7 @@ export class Application implements IEffectSink {
     private reactionTick: number;
     private pointerDown: { x: number; y: number; button: number; moved: boolean } | null;
     private lastPaint: number;
+    private stepMsEstimate: number;
     private wasmField: WasmForceField | null;
 
     public constructor(root: HTMLElement, options: IApplicationOptions = {}) {
@@ -106,6 +109,7 @@ export class Application implements IEffectSink {
         this.reactionTick = 0;
         this.pointerDown = null;
         this.lastPaint = 0;
+        this.stepMsEstimate = 0.3;
         this.wasmField = null;
         this.vm.attachPhysicsControl({
             setBackend: (mode) => {
@@ -384,10 +388,21 @@ export class Application implements IEffectSink {
             this.timeDebt += steps * this.world.params.timeScale;
             let budgeted = Math.floor(this.timeDebt);
             this.timeDebt -= budgeted;
+            const maxSteps = Math.max(
+                1,
+                Math.floor(Application.PHYSICS_BUDGET_MS / Math.max(0.05, this.stepMsEstimate)),
+            );
+            if (budgeted > maxSteps) {
+                budgeted = maxSteps;
+                this.timeDebt = 0;
+            }
             if (budgeted > 0) {
                 this.world.snapshotPrevious();
+                const startedAt = performance.now();
+                let performed = 0;
                 while (budgeted > 0) {
                     this.world.step(FramePacer.STEP_DT, this.simRng);
+                    performed++;
                     this.reactionTick++;
                     if (this.reactionTick % 12 === 0) {
                         this.reactions.update(this.world, this.simRng, this.vm);
@@ -401,6 +416,8 @@ export class Application implements IEffectSink {
                         break;
                     }
                 }
+                const spent = (performance.now() - startedAt) / Math.max(1, performed);
+                this.stepMsEstimate = this.stepMsEstimate * 0.7 + spent * 0.3;
             }
         }
         this.renderer.renderFrame(

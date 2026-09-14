@@ -692,3 +692,74 @@ describe("PresetCatalogConditions", () => {
         expect(params).toEqual(before);
     });
 });
+
+describe("PhysicsEngine force field backend", () => {
+    function makeEngineWorld(): { engine: PhysicsEngine; world: World } {
+        const engine = new PhysicsEngine(
+            [
+                new LennardJonesCalculator(2.2, 3),
+                new CoulombCalculator(60, 20),
+                new HydrogenBondCalculator(3, 3.5),
+            ],
+            SimParamsFactory.createDefault(),
+        );
+        return { engine, world: new World(engine, 7) };
+    }
+
+    it("delegates forces to the backend and applies them", () => {
+        const { engine, world } = makeEngineWorld();
+        const inputs: Array<{ positions: Float64Array; outForces: Float64Array }> = [];
+        engine.setForceField({
+            compute: (input) => {
+                inputs.push({ positions: input.positions, outForces: input.outForces });
+                input.outForces.fill(1);
+            },
+        });
+        const instance = world.spawn(methaneRecord(), 0, 0, 0, 0);
+        world.step(1 / 240, new SeededRandom(1));
+        expect(inputs.length).toBe(1);
+        expect(inputs[0].positions.length).toBe(3);
+
+        const before = instance.vx;
+        world.step(1 / 240, new SeededRandom(2));
+        expect(inputs.length).toBe(2);
+        expect(instance.vx).not.toBe(before);
+    });
+
+    it("skips dead instances and empty chambers", () => {
+        const { engine, world } = makeEngineWorld();
+        let calls = 0;
+        engine.setForceField({
+            compute: (input) => {
+                calls++;
+                input.outForces.fill(0);
+            },
+        });
+        world.step(1 / 240, new SeededRandom(1));
+        expect(calls).toBe(0);
+
+        const alive = world.spawn(methaneRecord(), 0, 0, 0, 0);
+        const dead = world.spawn(methaneRecord(), 2, 0, 0, 0);
+        dead.alive = false;
+        world.step(1 / 240, new SeededRandom(2));
+        expect(calls).toBe(1);
+        expect(alive.vx).toBeDefined();
+    });
+
+    it("switches back to the internal engine when cleared", () => {
+        const { engine, world } = makeEngineWorld();
+        let calls = 0;
+        engine.setForceField({
+            compute: () => {
+                calls++;
+            },
+        });
+        world.spawn(methaneRecord(), 0, 0, 0, 0);
+        world.spawn(methaneRecord(), 0.8, 0, 0, 0);
+        world.step(1 / 240, new SeededRandom(3));
+        expect(calls).toBe(1);
+        engine.setForceField(null);
+        expect(() => world.step(1 / 240, new SeededRandom(4))).not.toThrow();
+        expect(calls).toBe(1);
+    });
+});

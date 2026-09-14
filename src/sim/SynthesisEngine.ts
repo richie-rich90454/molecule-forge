@@ -35,6 +35,7 @@ export class SynthesisEngine {
     private readonly visited: Set<number>;
     private readonly cluster: MoleculeInstance[];
     private readonly queue: MoleculeInstance[];
+    private readonly sourceElements: Set<string>;
     private lastHint: string | null;
 
     public constructor(
@@ -51,6 +52,7 @@ export class SynthesisEngine {
         this.visited = new Set();
         this.cluster = [];
         this.queue = [];
+        this.sourceElements = new Set();
         this.lastHint = null;
     }
 
@@ -71,12 +73,22 @@ export class SynthesisEngine {
     public update(world: World, rng: SeededRandom, sink: IReactionSink): void {
         const sources = this.sources;
         sources.length = 0;
+        const elements = this.sourceElements;
+        elements.clear();
+        let hasMonatomic = false;
         for (const inst of world.getInstanceList()) {
             if (isElementalSource(inst.record)) {
                 sources.push(inst);
+                elements.add(inst.record.atoms[0].el);
+                if (inst.record.atoms.length === 1) {
+                    hasMonatomic = true;
+                }
             }
         }
         if (sources.length === 0) {
+            return;
+        }
+        if (!hasMonatomic && elements.size <= 1) {
             return;
         }
         for (const key of this.bucketKeys) {

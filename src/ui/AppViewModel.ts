@@ -36,6 +36,11 @@ export interface ISelectedAtom {
 
 export type CanvasTool = "orbit" | "place" | "erase";
 export type PanelMode = "library" | "analyze" | "reference" | "explain";
+export type PhysicsBackend = "ts" | "wasm";
+
+export interface IPhysicsControl {
+    setBackend(mode: PhysicsBackend): void;
+}
 
 const MAX_INSTANCES = 2500;
 
@@ -120,9 +125,14 @@ export class AppViewModel implements IReactionSink {
     public readonly getExplainReaction: () => IReactionExplanation | null;
     public readonly setExplainReaction: (value: IReactionExplanation | null) => void;
     public readonly getExplainData: () => IExplainData;
+    public readonly getPhysicsBackend: () => PhysicsBackend;
+    public readonly setPhysicsBackend: (value: PhysicsBackend) => void;
+    public readonly getWasmAvailable: () => boolean;
+    public readonly setWasmAvailable: (value: boolean) => void;
 
     private readonly recorder: LabRecorder;
     private readonly rules: ReadonlyArray<IReactionRule>;
+    private physicsControl: IPhysicsControl | null;
     private referenceData: IReferenceData | null;
 
     public constructor(
@@ -138,6 +148,7 @@ export class AppViewModel implements IReactionSink {
         this.presets = PresetCatalog.buildPresets();
         this.rules = ReactionCatalog.buildRules();
         this.recorder = new LabRecorder();
+        this.physicsControl = null;
         this.referenceData = null;
         this.logCounter = 0;
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
@@ -247,6 +258,12 @@ export class AppViewModel implements IReactionSink {
         );
         this.getExplainReaction = getExplainReaction;
         this.setExplainReaction = setExplainReaction;
+        const [getPhysicsBackend, setPhysicsBackend] = createSignal<PhysicsBackend>("ts");
+        this.getPhysicsBackend = getPhysicsBackend;
+        this.setPhysicsBackend = setPhysicsBackend;
+        const [getWasmAvailable, setWasmAvailable] = createSignal<boolean>(false);
+        this.getWasmAvailable = getWasmAvailable;
+        this.setWasmAvailable = setWasmAvailable;
         this.getFilteredRecords = createMemo(() => {
             return registry.getRecords(getCategory());
         });
@@ -574,6 +591,18 @@ export class AppViewModel implements IReactionSink {
 
     public selectPanel(panel: PanelMode): void {
         this.setPanel(panel);
+    }
+
+    public attachPhysicsControl(control: IPhysicsControl): void {
+        this.physicsControl = control;
+    }
+
+    public togglePhysics(): void {
+        if (this.physicsControl === null || !this.getWasmAvailable()) {
+            return;
+        }
+        const next: PhysicsBackend = this.getPhysicsBackend() === "wasm" ? "ts" : "wasm";
+        this.physicsControl.setBackend(next);
     }
 
     public rerollSeed(): void {

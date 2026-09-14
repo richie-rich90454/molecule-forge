@@ -59,7 +59,10 @@ pub struct HydrogenBondCalculator {
 
 impl HydrogenBondCalculator {
     pub fn new(strength: f64, max_distance: f64) -> Self {
-        Self { strength, max_distance }
+        Self {
+            strength,
+            max_distance,
+        }
     }
 
     pub fn pair_magnitude(&self, dist: f64, donors: u32, acceptors: u32) -> f64 {
@@ -84,7 +87,9 @@ impl ForceCalculator for HydrogenBondCalculator {
 
 #[cfg(test)]
 mod tests {
-    use super::{CoulombCalculator, ForceCalculator, HydrogenBondCalculator, LennardJonesCalculator};
+    use super::{
+        CoulombCalculator, ForceCalculator, HydrogenBondCalculator, LennardJonesCalculator,
+    };
 
     #[test]
     fn lennard_jones_repels_up_close() {

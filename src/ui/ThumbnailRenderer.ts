@@ -9,6 +9,8 @@ interface IThumbnailItem {
 }
 
 export class ThumbnailRenderer {
+    private static readonly FRAME_MS = 1000 / 15;
+
     private readonly items: IThumbnailItem[];
     private readonly observer: IntersectionObserver | null;
     private rafId: number;
@@ -39,7 +41,7 @@ export class ThumbnailRenderer {
             this.observer.observe(canvas);
         }
         if (this.rafId === 0) {
-            this.lastTime = performance.now();
+            this.lastTime = performance.now() - ThumbnailRenderer.FRAME_MS;
             this.rafId = requestAnimationFrame((now) => {
                 this.tick(now);
             });
@@ -65,14 +67,16 @@ export class ThumbnailRenderer {
         if (this.items.length === 0) {
             return;
         }
-        const dt = Math.min(0.1, (now - this.lastTime) / 1000);
-        this.lastTime = now;
-        for (const item of this.items) {
-            if (!item.visible) {
-                continue;
+        if (now - this.lastTime >= ThumbnailRenderer.FRAME_MS) {
+            const dt = Math.min(0.1, (now - this.lastTime) / 1000);
+            this.lastTime = now;
+            for (const item of this.items) {
+                if (!item.visible) {
+                    continue;
+                }
+                item.angle += dt * 0.8;
+                this.draw(item);
             }
-            item.angle += dt * 0.8;
-            this.draw(item);
         }
         this.rafId = requestAnimationFrame((next) => {
             this.tick(next);

@@ -163,6 +163,14 @@ class FakeRegistry implements IMoleculeRegistry {
         return [];
     }
 
+    public getCategoryIds(): ReadonlyArray<string> {
+        return Array.from(this.records.keys());
+    }
+
+    public getBuiltRecord(id: string): IMoleculeRecord | undefined {
+        return this.records.get(id);
+    }
+
     public getAllRecords(): ReadonlyArray<IMoleculeRecord> {
         return Array.from(this.records.values());
     }

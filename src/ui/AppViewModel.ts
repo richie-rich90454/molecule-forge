@@ -43,6 +43,8 @@ export interface IPhysicsControl {
 }
 
 const MAX_INSTANCES = 2500;
+const BUILD_BUDGET_MS = 6;
+const BUILD_BATCH = 24;
 
 export class AppViewModel implements IReactionSink {
     private readonly registry: IMoleculeRegistry;
@@ -134,6 +136,11 @@ export class AppViewModel implements IReactionSink {
     private readonly rules: ReadonlyArray<IReactionRule>;
     private physicsControl: IPhysicsControl | null;
     private referenceData: IReferenceData | null;
+    private readonly publishRecords: (value: ReadonlyArray<IMoleculeRecord>) => void;
+    private pendingIds: string[];
+    private pendingIndex: number;
+    private warmScheduled: boolean;
+    private disposed: boolean;
 
     public constructor(
         registry: IMoleculeRegistry,
@@ -150,6 +157,10 @@ export class AppViewModel implements IReactionSink {
         this.recorder = new LabRecorder();
         this.physicsControl = null;
         this.referenceData = null;
+        this.pendingIds = [];
+        this.pendingIndex = 0;
+        this.warmScheduled = false;
+        this.disposed = false;
         this.logCounter = 0;
         const [getCategory, setCategory] = createSignal<MoleculeCategory>("alkanes");
         this.getCategory = getCategory;
@@ -264,9 +275,11 @@ export class AppViewModel implements IReactionSink {
         const [getWasmAvailable, setWasmAvailable] = createSignal<boolean>(false);
         this.getWasmAvailable = getWasmAvailable;
         this.setWasmAvailable = setWasmAvailable;
-        this.getFilteredRecords = createMemo(() => {
-            return registry.getRecords(getCategory());
-        });
+        const [getFilteredRecords, publishRecords] = createSignal<ReadonlyArray<IMoleculeRecord>>(
+            [],
+        );
+        this.getFilteredRecords = getFilteredRecords;
+        this.publishRecords = publishRecords;
         this.getExplainData = createMemo(() => {
             const record = registry.findById(this.getSelectedId());
             return {
@@ -292,6 +305,71 @@ export class AppViewModel implements IReactionSink {
 
     public initialize(): void {
         this.syncParamsToWorld();
+        this.startWarming();
+    }
+
+    public dispose(): void {
+        this.disposed = true;
+    }
+
+    private startWarming(): void {
+        this.rebuildQueue();
+        this.publishRecords(this.collectBuilt());
+        this.pump();
+    }
+
+    private collectBuilt(): IMoleculeRecord[] {
+        const records: IMoleculeRecord[] = [];
+        for (const id of this.registry.getCategoryIds(this.getCategory())) {
+            const record = this.registry.getBuiltRecord(id);
+            if (record !== undefined) {
+                records.push(record);
+            }
+        }
+        return records;
+    }
+
+    private rebuildQueue(): void {
+        this.pendingIds = [...this.registry.getCategoryIds(this.getCategory())];
+        this.pendingIndex = 0;
+    }
+
+    private pump(): void {
+        this.warmScheduled = false;
+        if (this.disposed) {
+            return;
+        }
+        const startedAt = performance.now();
+        let built = false;
+        let processed = 0;
+        while (this.pendingIndex < this.pendingIds.length && processed < BUILD_BATCH) {
+            if (performance.now() - startedAt >= BUILD_BUDGET_MS) {
+                break;
+            }
+            const id = this.pendingIds[this.pendingIndex];
+            this.pendingIndex++;
+            processed++;
+            if (this.registry.getBuiltRecord(id) === undefined) {
+                this.registry.findById(id);
+                built = true;
+            }
+        }
+        if (built) {
+            this.publishRecords(this.collectBuilt());
+        }
+        if (this.pendingIndex < this.pendingIds.length) {
+            this.schedulePump();
+        }
+    }
+
+    private schedulePump(): void {
+        if (this.warmScheduled || this.disposed) {
+            return;
+        }
+        this.warmScheduled = true;
+        setTimeout(() => {
+            this.pump();
+        }, 0);
     }
 
     public getRegistry(): IMoleculeRegistry {
@@ -365,6 +443,9 @@ export class AppViewModel implements IReactionSink {
 
     public selectCategory(category: MoleculeCategory): void {
         this.setCategory(category);
+        this.rebuildQueue();
+        this.publishRecords(this.collectBuilt());
+        this.pump();
     }
 
     public selectMolecule(id: string): void {

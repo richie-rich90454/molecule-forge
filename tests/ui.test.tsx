@@ -148,6 +148,14 @@ class FakeRegistry implements IMoleculeRegistry {
         return this.records.filter((record) => record.category === category);
     }
 
+    public getCategoryIds(category: MoleculeCategory): ReadonlyArray<string> {
+        return this.records.filter((record) => record.category === category).map((r) => r.id);
+    }
+
+    public getBuiltRecord(id: string): IMoleculeRecord | undefined {
+        return this.records.find((record) => record.id === id);
+    }
+
     public getAllRecords(): ReadonlyArray<IMoleculeRecord> {
         return this.records;
     }
@@ -158,6 +166,52 @@ class FakeRegistry implements IMoleculeRegistry {
 
     public getCount(): number {
         return this.records.length;
+    }
+}
+
+class LazyRegistry implements IMoleculeRegistry {
+    private readonly ids: string[];
+    private readonly built: Map<string, IMoleculeRecord>;
+
+    public constructor(count: number) {
+        this.ids = [];
+        this.built = new Map();
+        for (let i = 0; i < count; i++) {
+            this.ids.push("lazy-" + i);
+        }
+    }
+
+    public getCategories(): ReadonlyArray<MoleculeCategory> {
+        return ["alkanes"];
+    }
+
+    public getRecords(): ReadonlyArray<IMoleculeRecord> {
+        return [];
+    }
+
+    public getCategoryIds(): ReadonlyArray<string> {
+        return this.ids;
+    }
+
+    public getBuiltRecord(id: string): IMoleculeRecord | undefined {
+        return this.built.get(id);
+    }
+
+    public findById(id: string): IMoleculeRecord | undefined {
+        let record = this.built.get(id);
+        if (record === undefined && this.ids.includes(id)) {
+            record = makeRecord(id, false, 2, 0);
+            this.built.set(id, record);
+        }
+        return record;
+    }
+
+    public getAllRecords(): ReadonlyArray<IMoleculeRecord> {
+        return Array.from(this.built.values());
+    }
+
+    public getCount(): number {
+        return this.ids.length;
     }
 }
 
@@ -610,6 +664,37 @@ describe("LibraryViews", () => {
     });
 });
 
+describe("progressive library loading", () => {
+    it("builds a category in time-sliced batches and streams records in", () => {
+        const engine = new PhysicsEngine(
+            [
+                new LennardJonesCalculator(2.2, 3),
+                new CoulombCalculator(60, 20),
+                new HydrogenBondCalculator(3, 3.5),
+            ],
+            SimParamsFactory.createDefault(),
+        );
+        const vm = new AppViewModel(new LazyRegistry(30), new World(engine, 1), new SoundEngine(), {
+            flash: () => {},
+            burst: () => {},
+            arrow: () => {},
+        });
+        vi.useFakeTimers();
+        try {
+            vm.initialize();
+            expect(vm.getFilteredRecords().length).toBeGreaterThan(0);
+            expect(vm.getFilteredRecords().length).toBeLessThan(30);
+            (vm as unknown as { schedulePump: () => void }).schedulePump();
+            vi.advanceTimersByTime(100);
+            expect(vm.getFilteredRecords().length).toBe(30);
+            vm.dispose();
+            vi.advanceTimersByTime(100);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});
+
 describe("ThumbnailRenderer", () => {
     function fakeContext(): CanvasRenderingContext2D {
         const noop = (): void => {};
@@ -645,6 +730,20 @@ describe("ThumbnailRenderer", () => {
         if (flush !== undefined) {
             flush(1200);
         }
+    });
+
+    it("throttles redraws between animation frames", () => {
+        const renderer = new ThumbnailRenderer();
+        const canvas = document.createElement("canvas");
+        Object.defineProperty(canvas, "clientWidth", { value: 100, configurable: true });
+        Object.defineProperty(canvas, "clientHeight", { value: 74, configurable: true });
+        const record = new FakeRegistry().findById("benzene") as IMoleculeRecord;
+        renderer.watch(canvas, record);
+        const internal = renderer as unknown as { tick(now: number): void; lastTime: number };
+        internal.tick(internal.lastTime + 10);
+        internal.tick(internal.lastTime + 1000);
+        internal.tick(internal.lastTime + 2000);
+        renderer.unwatch(canvas);
     });
 
     it("draws with a real context object", () => {

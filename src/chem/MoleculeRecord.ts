@@ -90,6 +90,8 @@ export interface IMoleculeRegistry {
     getCategories(): ReadonlyArray<MoleculeCategory>;
     getRecords(category: MoleculeCategory): ReadonlyArray<IMoleculeRecord>;
     getAllRecords(): ReadonlyArray<IMoleculeRecord>;
+    getCategoryIds(category: MoleculeCategory): ReadonlyArray<string>;
+    getBuiltRecord(id: string): IMoleculeRecord | undefined;
     findById(id: string): IMoleculeRecord | undefined;
     getCount(): number;
 }

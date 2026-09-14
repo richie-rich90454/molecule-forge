@@ -1,4 +1,5 @@
 import type { CompactBond } from "./MoleculeRecord";
+import { ElementRegistry } from "./ElementRegistry";
 
 export interface ISmilesParseResult {
     readonly heavy: string[];
@@ -179,21 +180,17 @@ export class SmilesParser {
                 state.pos++;
             } else {
                 const two = state.text.substring(state.pos, state.pos + 2);
-                if (
-                    two === "Cl" ||
-                    two === "Br" ||
-                    two === "Si" ||
-                    two === "Se" ||
-                    two === "Na" ||
-                    two === "Li" ||
-                    two === "Mg" ||
-                    two === "Al" ||
-                    two === "Ca" ||
-                    two === "Fe" ||
-                    two === "Zn" ||
-                    two === "Cu" ||
-                    two === "Pt" ||
-                    two === "As"
+                const lowerTwo = two.toLowerCase();
+                if (lowerTwo === "se" || lowerTwo === "as" || lowerTwo === "te") {
+                    addAtom(two[0].toUpperCase() + two[1], true, 0, null);
+                    state.pos += 2;
+                } else if (
+                    two.length === 2 &&
+                    ch >= "A" &&
+                    ch <= "Z" &&
+                    two[1] >= "a" &&
+                    two[1] <= "z" &&
+                    ElementRegistry.has(two)
                 ) {
                     addAtom(two, false, 0, null);
                     state.pos += 2;

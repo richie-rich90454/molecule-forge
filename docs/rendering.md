@@ -18,7 +18,7 @@ A three-way tool switch removes all click ambiguity. Orbit mode navigates and in
 
 ## Typography
 
-The interface uses two families only, `Noto Sans` for text and `Noto Sans Mono` for numeric readouts and the log, declared as CSS custom properties. No web font is fetched: the single-file build references the installed families and lets the generic `sans-serif` and `monospace` fallbacks cover a machine without them, so the app never blocks on the network for text.
+The interface uses two families only, `Noto Sans` for text and `Noto Sans Mono` for numeric readouts and the log. Both ship with the build as `dist/assets/*.woff2` files (no web font is requested at runtime), and the CSS lists the generic `sans-serif` and `monospace` families as fallbacks.
 
 ## Budgets
 

@@ -12,7 +12,7 @@ The toolbar floating over the canvas picks exactly one interaction mode, so clic
 
 ## Library
 
-The left panel holds seventeen category tabs, from alkanes to the elemental table, with a live rotating thumbnail per molecule. Cards show the name, formula, and a hazard badge for warning molecules. Warning molecules cannot spawn while the Warnings toggle is off.
+The left panel holds twenty-eight category tabs, from alkanes to the elemental table, with a live rotating thumbnail per molecule. Cards show the name, formula, and a hazard badge for warning molecules. Warning molecules cannot spawn while the Warnings toggle is off.
 
 ## Forming compounds
 
